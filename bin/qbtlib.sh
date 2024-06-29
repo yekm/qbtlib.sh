@@ -1,5 +1,5 @@
 # usage:
-# bash qbtlib.sh last | grep Отечественная | cut -f1 | tail | bash qbtlib.sh resume
+# bash qbtlib.sh last | grep Отечественная | cut -f1 | bash qbtlib.sh resume
 
 tmp=/tmp/qbtlib.sh.cache_$(date +%F_%R).zst
 
@@ -8,7 +8,7 @@ _apicall() {
 	#s=--verbose
 	set -vx
 	curl $s \
-		-G http://${QBT_HOST:-localhost:8283}/api/v2/torrents/$1 \
+		http://${QBT_HOST:-localhost:8283}/api/v2/torrents/$1 \
 		"${@:2}"
 	set +vx
 }
