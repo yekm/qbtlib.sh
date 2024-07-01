@@ -50,8 +50,19 @@ monitor)
 	torrents info -G \
 		--data "sort=upspeed" \
 		--data "filter=active" | \
-		jq -r '.[] | [ .category, .name, .upspeed/1024/1024 ] | @tsv' | \
-		column --table -N category,name,upspeed -s$'\t'
+		jq -r '.[] | [ .category, .name, .upspeed/1024/1024, .progress*100 ] | @tsv' | \
+		column --table -N category,name,upspeed,completed -s$'\t'
+	echo
+	transfer info | \
+		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024 ] | @tsv' | \
+		column --table -N status,dhtnodes,dl,up,total -s$'\t'
+	;;
+monitor_dl)
+	torrents info -G \
+		--data "sort=dlspeed" \
+		--data "filter=active" | \
+		jq -r '.[] | [ .category, .name, .dlspeed/1024/1024, .progress*100 ] | @tsv' | \
+		column --table -N category,name,upspeed,completed -s$'\t'
 	echo
 	transfer info | \
 		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024 ] | @tsv' | \
