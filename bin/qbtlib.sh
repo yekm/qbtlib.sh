@@ -54,8 +54,8 @@ monitor)
 		column --table -N category,name,upspeed -s$'\t'
 	echo
 	transfer info | \
-		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024 ] | @tsv' | \
-		column --table -N status,dhtnodes,dl,up -s$'\t'
+		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024 ] | @tsv' | \
+		column --table -N status,dhtnodes,dl,up,total -s$'\t'
 	;;
 resume)
 	hashes=$(paste -sd\|)
