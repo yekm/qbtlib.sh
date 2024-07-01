@@ -1,7 +1,7 @@
 # usage:
 # bash qbtlib.sh last | grep Отечественная | cut -f1 | bash qbtlib.sh resume
 # bash qbtlib.sh active | cut -f1 | bash qbtlib.sh countries | sort | uniq -c | sort -n
-# watch "bash qbtlib.sh monitor | column --table -N category,name,upspeed -s$'\t' | tail -n50"
+# watch 'bash qbtlib.sh monitor | tail -n50'
 
 tmp=/tmp/qbtlib.sh.cache_$(date +%F_%R).zst
 
@@ -21,6 +21,10 @@ torrents() {
 
 sync() {
 	_apicall sync $@
+}
+
+transfer() {
+	_apicall transfer $@
 }
 
 export -f _apicall torrents sync
@@ -46,7 +50,12 @@ monitor)
 	torrents info -G \
 		--data "sort=upspeed" \
 		--data "filter=active" | \
-		jq -r '.[] | [ .category, .name, .upspeed/1024/1024 ] | @tsv'
+		jq -r '.[] | [ .category, .name, .upspeed/1024/1024 ] | @tsv' | \
+		column --table -N category,name,upspeed -s$'\t'
+	echo
+	transfer info | \
+		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024 ] | @tsv' | \
+		column --table -N status,dhtnodes,dl,up -s$'\t'
 	;;
 resume)
 	hashes=$(paste -sd\|)
