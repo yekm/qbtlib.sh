@@ -49,6 +49,11 @@ recheck)
 	hashes=$(paste -sd\|)
 	torrents recheck -X POST --data "hashes=$hashes"
 	;;
+set_location)
+	[ -z "$1" ] && echo specify location as first arg && exit -1
+	hashes=$(paste -sd\|)
+	torrents setLocation -X POST --data "hashes=$hashes" --data "location=$1"
+	;;
 countries)
 	parallel -j32 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .country"'
 	;;
