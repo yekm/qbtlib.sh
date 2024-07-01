@@ -46,6 +46,26 @@ active)
 		--data "filter=active" | \
 		jq -r '.[] | [ .hash, .category, .content_path ] | @tsv'
 	;;
+resume)
+	hashes=$(paste -sd\|)
+	torrents resume -X POST --data "hashes=$hashes"
+	;;
+recheck)
+	hashes=$(paste -sd\|)
+	torrents recheck -X POST --data "hashes=$hashes"
+	;;
+set_location)
+	[ -z "$1" ] && echo specify location as first arg && exit -1
+	hashes=$(paste -sd\|)
+	torrents setLocation -X POST --data "hashes=$hashes" --data "location=$1"
+	;;
+countries)
+	parallel -j32 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .country"'
+	;;
+
+# jq's floor should be embedded in an arrray.
+# echo '{"mass": 188.72, "shit": 100}' | jq ' [ [.mass|floor] , .shit ] | flatten'
+# looks ugly
 monitor)
 	torrents info -G \
 		--data "sort=upspeed" \
@@ -68,20 +88,5 @@ monitor_dl)
 		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024 ] | @tsv' | \
 		column --table -N status,dhtnodes,dl,up,total -s$'\t'
 	;;
-resume)
-	hashes=$(paste -sd\|)
-	torrents resume -X POST --data "hashes=$hashes"
-	;;
-recheck)
-	hashes=$(paste -sd\|)
-	torrents recheck -X POST --data "hashes=$hashes"
-	;;
-set_location)
-	[ -z "$1" ] && echo specify location as first arg && exit -1
-	hashes=$(paste -sd\|)
-	torrents setLocation -X POST --data "hashes=$hashes" --data "location=$1"
-	;;
-countries)
-	parallel -j32 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .country"'
-	;;
+
 esac
