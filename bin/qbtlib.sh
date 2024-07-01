@@ -1,6 +1,7 @@
 # usage:
 # bash qbtlib.sh last | grep Отечественная | cut -f1 | bash qbtlib.sh resume
 # bash qbtlib.sh active | cut -f1 | bash qbtlib.sh countries | sort | uniq -c | sort -n
+# watch "bash qbtlib.sh monitor | column --table -N category,name,upspeed -s$'\t' | tail -n50"
 
 tmp=/tmp/qbtlib.sh.cache_$(date +%F_%R).zst
 
@@ -40,6 +41,12 @@ active)
 		--data "sort=added_on" \
 		--data "filter=active" | \
 		jq -r '.[] | [ .hash, .category, .content_path ] | @tsv'
+	;;
+monitor)
+	torrents info -G \
+		--data "sort=upspeed" \
+		--data "filter=active" | \
+		jq -r '.[] | [ .category, .name, .upspeed/1024/1024 ] | @tsv'
 	;;
 resume)
 	hashes=$(paste -sd\|)
