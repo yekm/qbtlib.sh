@@ -1,12 +1,25 @@
 # usage:
+
+# resume particular torrents
 # bash qbtlib.sh last | grep Отечественная | cut -f1 | bash qbtlib.sh resume
+
+# top countries from active torrent
 # bash qbtlib.sh active | cut -f1 | bash qbtlib.sh countries | sort | uniq -c | sort -n
+
+# upload monitor
 # watch 'bash qbtlib.sh monitor | tail -n50'
 
 # most connected peers:
 # qbtlib.sh active | cut -f1 | qbtlib.sh connections | sort | uniq -c | sort -n
+
 # their files:
 # time qbtlib.sh active | cut -f1 | qbtlib.sh connections | sort | uniq -c | sort -n | rev | cut -f1 -d' ' | rev | qbtlib.sh peerfiles
+
+# hashes from top countries:
+# qbtlib.sh active | cut -f1 | qbtlib.sh countries | qbtlib.sh rawtop | tail -n3 | parallel --tag -k qbtlib.sh tcountries
+
+# content path of active torrents by top 4 coutries
+# qbtlib.sh active | cut -f1 | qbtlib.sh countries | qbtlib.sh rawtop | tail -n4 | parallel qbtlib.sh tcountries | parallel -k --tag --colsep=$'\t' 'qbtlib.sh cpath {1}' | cut -f2- -d' ' | column -t -s$'\t'
 
 export PATH=$BASH_SOURCE:$PATH
 
@@ -35,10 +48,10 @@ transfer() {
 }
 
 peerhashes() {
-	qbtlib.sh active | cut -f1 | parallel --tag -j32 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .ip"' | grep -F -w $1
+	qbtlib.sh active | cut -f1 | parallel --tag 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .ip"' | grep -F -w $1
 }
 peerfiles() {
-	peerhashes $1 | cut -f1 | parallel -j4 qbtlib.sh cpath
+	peerhashes $1 | cut -f1 | parallel qbtlib.sh cpath
 }
 
 export -f _apicall torrents sync peerhashes peerfiles
@@ -70,6 +83,12 @@ active)
 		--data "filter=active" | \
 		jq -r '.[] | [ .hash, .category, .content_path ] | @tsv'
 	;;
+active.js)
+	torrents info -G \
+		--data "sort=added_on" \
+		--data "filter=active" | \
+		jq
+	;;
 resume)
 	hashes=$(paste -sd\|)
 	torrents resume -X POST --data "hashes=$hashes"
@@ -84,17 +103,28 @@ set_location)
 	torrents setLocation -X POST --data "hashes=$hashes" --data "location=$1"
 	;;
 peerhashes)
-	parallel -j4 peerhashes
+	parallel peerhashes
 	;;
 connections)
-	parallel -j32 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .ip"'
+	parallel 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .ip"'
 	;;
 peerfiles)
 	parallel --tag -k peerfiles
 	;;
 
+# "peers_country" by hashes
 countries)
-	parallel -j32 -k --tag 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .country"'
+	parallel -k 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .country"'
+	;;
+
+# "hash peers_country" by hashes
+icountries)
+	parallel -k --tag 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .country"'
+	;;
+
+# "hash" by coutry
+tcountries)
+	qbtlib.sh active | cut -f1 | qbtlib.sh icountries | grep "$2" | rev | uniq -f1 | rev
 	;;
 
 # jq's floor should be embedded in an arrray.
@@ -125,6 +155,9 @@ monitor_dl)
 
 top)
 	sort | uniq -c | sort -n # without -r it's actually a `bottom`
+	;;
+rawtop)
+	qbtlib.sh top | sed 's/ *[0-9]* //'
 	;;
 *)
 	echo no such command
