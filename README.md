@@ -6,6 +6,8 @@ it uses recursion, so you must `chmod +x` it before use
 
 ## usage
 
+`export QBT_HOST=whatever:port`
+
 get torrent list sorted by added_on column  
 `qbtlib.sh last`
 
