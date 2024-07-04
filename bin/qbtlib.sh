@@ -3,6 +3,13 @@
 # bash qbtlib.sh active | cut -f1 | bash qbtlib.sh countries | sort | uniq -c | sort -n
 # watch 'bash qbtlib.sh monitor | tail -n50'
 
+# most connected peers:
+# qbtlib.sh active | cut -f1 | qbtlib.sh connections | sort | uniq -c | sort -n
+# their files:
+# time qbtlib.sh active | cut -f1 | qbtlib.sh connections | sort | uniq -c | sort -n | rev | cut -f1 -d' ' | rev | qbtlib.sh peerfiles
+
+export PATH=$BASH_SOURCE:$PATH
+
 tmp=/tmp/qbtlib.sh.cache_$(date +%F_%R).zst
 
 _apicall() {
@@ -27,7 +34,14 @@ transfer() {
 	_apicall transfer $@
 }
 
-export -f _apicall torrents sync
+peerhashes() {
+	qbtlib.sh active | cut -f1 | parallel --tag -j32 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .ip"' | grep -F -w $1
+}
+peerfiles() {
+	peerhashes $1 | cut -f1 | parallel -j4 qbtlib.sh cpath
+}
+
+export -f _apicall torrents sync peerhashes peerfiles
 
 
 
@@ -37,8 +51,18 @@ cache)
 	;;
 last)
 	torrents info -G --data "sort=added_on" | \
-		jq -r '.[] | [ .hash, .category, .content_path ] | @tsv' | \
+		jq -r '[ .hash, .category, .content_path ] | @tsv' | \
 		zstdmt --adapt | tee $tmp | zstdmt -d
+	;;
+tfiles)
+	torrents files -G \
+		--data "hash=$2" | \
+		jq -r '.[] | [ .name, .progress*100, .size/1024/1024/1024 ] | @tsv' | column -t -s$'\t'
+	;;
+cpath)
+	torrents info -G \
+		--data "hashes=$2" | \
+		jq -r '.[] | .content_path'
 	;;
 active)
 	torrents info -G \
@@ -59,8 +83,18 @@ set_location)
 	hashes=$(paste -sd\|)
 	torrents setLocation -X POST --data "hashes=$hashes" --data "location=$1"
 	;;
+peerhashes)
+	parallel -j4 peerhashes
+	;;
+connections)
+	parallel -j32 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .ip"'
+	;;
+peerfiles)
+	parallel --tag -k peerfiles
+	;;
+
 countries)
-	parallel -j32 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .country"'
+	parallel -j32 -k --tag 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .country"'
 	;;
 
 # jq's floor should be embedded in an arrray.
@@ -71,7 +105,7 @@ monitor)
 		--data "sort=upspeed" \
 		--data "filter=active" | \
 		jq -r '.[] | [ .category, .name, .upspeed/1024/1024, .progress*100 ] | @tsv' | \
-		column --table -N category,name,upspeed,completed -s$'\t'
+		column --table -o' ' -C name=category,width=1,strictwidth,trunc -C name=name,width=10,strictwidth -C name=up,width=1,strictwidth -C name=compl,width=1,strictwidth,trunc -T 0 -R 3,4 -m -s$'\t'
 	echo
 	transfer info | \
 		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024 ] | @tsv' | \
@@ -89,4 +123,13 @@ monitor_dl)
 		column --table -N status,dhtnodes,dl,up,total -s$'\t'
 	;;
 
+top)
+	sort | uniq -c | sort -n # without -r it's actually a `bottom`
+	;;
+*)
+	echo no such command
+	exit -1
+	;;
 esac
+
+set +vx
