@@ -31,6 +31,9 @@ files for last 5 added torrents
 top countries from active torrent  
 `qbtlib.sh active | cut -f1 | qbtlib.sh countries | qbtlib.sh top`
 
+number of peers from all coutries excluding one top country
+`qbtlib.sh active | cut -f1 | qbtlib.sh countries | qbtlib.sh top | head -n-1 | awk '{print $1}' | paste -sd+  | bc`
+
 upload monitor  
 `watch 'qbtlib.sh monitor | tail -n50'`
 
