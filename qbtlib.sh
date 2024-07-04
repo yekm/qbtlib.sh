@@ -98,9 +98,14 @@ recheck)
 	torrents recheck -X POST --data "hashes=$hashes"
 	;;
 set_location)
-	[ -z "$1" ] && echo specify location as first arg && exit -1
+	[ -z "$2" ] && echo specify location as first arg && exit -1
 	hashes=$(paste -sd\|)
 	torrents setLocation -X POST --data "hashes=$hashes" --data "location=$2"
+	;;
+set_category)
+	[ -z "$2" ] && echo specify catgory as first arg && exit -1
+	hashes=$(paste -sd\|)
+	torrents setCategory -X POST --data "hashes=$hashes" --data "category=$2"
 	;;
 peerhashes)
 	parallel peerhashes

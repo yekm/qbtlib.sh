@@ -6,11 +6,17 @@ it uses recursion, so you must `chmod +x` it before use
 
 ## usage
 
+get torrent list sorted by added_on column  
+`qbtlib.sh last`
+
 resume particular torrents  
 `qbtlib.sh last | grep Отечественная | cut -f1 | bash qbtlib.sh resume`
 
 `last` is runs slow for big lists, you may use `cache` instead. it contains `last`'s last output.
 In other words `qbtlib.sh cache` is the same as `qbtlib.sh last`.
+
+set category for last 40 added torrents  
+`qbtlib.sh cache | tail -n40 | cut -f1 | qbtlib.sh set_category newcategory`
 
 top countries from active torrent  
 `qbtlib.sh active | cut -f1 | bash qbtlib.sh countries | qbtlib.sh top`
