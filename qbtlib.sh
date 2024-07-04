@@ -64,7 +64,7 @@ cache)
 	;;
 last)
 	torrents info -G --data "sort=added_on" | \
-		jq -r '[ .hash, .category, .content_path ] | @tsv' | \
+		jq -r '.[] | [ .hash, .category, .content_path ] | @tsv' | \
 		zstdmt --adapt | tee $tmp | zstdmt -d
 	;;
 tfiles)
@@ -100,7 +100,7 @@ recheck)
 set_location)
 	[ -z "$1" ] && echo specify location as first arg && exit -1
 	hashes=$(paste -sd\|)
-	torrents setLocation -X POST --data "hashes=$hashes" --data "location=$1"
+	torrents setLocation -X POST --data "hashes=$hashes" --data "location=$2"
 	;;
 peerhashes)
 	parallel peerhashes
