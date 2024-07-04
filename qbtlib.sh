@@ -1,25 +1,4 @@
-# usage:
-
-# resume particular torrents
-# bash qbtlib.sh last | grep Отечественная | cut -f1 | bash qbtlib.sh resume
-
-# top countries from active torrent
-# bash qbtlib.sh active | cut -f1 | bash qbtlib.sh countries | sort | uniq -c | sort -n
-
-# upload monitor
-# watch 'bash qbtlib.sh monitor | tail -n50'
-
-# most connected peers:
-# qbtlib.sh active | cut -f1 | qbtlib.sh connections | sort | uniq -c | sort -n
-
-# their files:
-# time qbtlib.sh active | cut -f1 | qbtlib.sh connections | sort | uniq -c | sort -n | rev | cut -f1 -d' ' | rev | qbtlib.sh peerfiles
-
-# hashes from top countries:
-# qbtlib.sh active | cut -f1 | qbtlib.sh countries | qbtlib.sh rawtop | tail -n3 | parallel --tag -k qbtlib.sh tcountries
-
-# content path of active torrents by top 4 coutries
-# qbtlib.sh active | cut -f1 | qbtlib.sh countries | qbtlib.sh rawtop | tail -n4 | parallel qbtlib.sh tcountries | parallel -k --tag --colsep=$'\t' 'qbtlib.sh cpath {1}' | cut -f2- -d' ' | column -t -s$'\t'
+#!/bin/bash
 
 export PATH=$BASH_SOURCE:$PATH
 
@@ -47,6 +26,7 @@ transfer() {
 	_apicall transfer $@
 }
 
+# show all active torrents | get their peers | grep by ip
 peerhashes() {
 	qbtlib.sh active | cut -f1 | parallel --tag 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .ip"' | grep -F -w $1
 }
@@ -70,7 +50,7 @@ last)
 tfiles)
 	torrents files -G \
 		--data "hash=$2" | \
-		jq -r '.[] | [ .name, .progress*100, .size/1024/1024/1024 ] | @tsv' | column -t -s$'\t'
+		jq -r '.[] | [ .name, .progress*100, .size/1024/1024/1024 ] | @tsv'
 	;;
 cpath)
 	torrents info -G \
@@ -107,6 +87,7 @@ set_category)
 	hashes=$(paste -sd\|)
 	torrents setCategory -X POST --data "hashes=$hashes" --data "category=$2"
 	;;
+
 peerhashes)
 	parallel peerhashes
 	;;
@@ -157,6 +138,7 @@ monitor_dl)
 		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024 ] | @tsv' | \
 		column --table -N status,dhtnodes,dl,up,total -s$'\t'
 	;;
+
 
 top)
 	sort | uniq -c | sort -n # without -r it's actually a `bottom`
