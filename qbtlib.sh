@@ -87,6 +87,14 @@ set_category)
 	hashes=$(paste -sd\|)
 	torrents setCategory -X POST --data "hashes=$hashes" --data "category=$2"
 	;;
+qtop)
+	hashes=$(paste -sd\|)
+	torrents topPrio -X POST --data "hashes=$hashes"
+	;;
+qbottom)
+	hashes=$(paste -sd\|)
+	torrents bottomPrio -X POST --data "hashes=$hashes"
+	;;
 
 peerhashes)
 	parallel peerhashes
