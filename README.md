@@ -1,8 +1,12 @@
 # qbtlib.sh
 bash library to manipulate qbittorent via web api
 
+
 ## installation
-it uses recursion, so you must `chmod +x` it before use
+`cp` and `cmof +x` somewhere in PATH. `chmod +x` is a must because it uses recursion
+
+dependencies: bash, curl, jq, gnu parallel, awk, util-linux, coreutils
+
 
 ## usage
 
@@ -11,7 +15,7 @@ it uses recursion, so you must `chmod +x` it before use
 get torrent list sorted by added_on column  
 `qbtlib.sh last`
 
-output format is tab separated `hash` `category` and `content_path`
+output format is tab separated `hash` `category`, `content_path` and `percent done`
 
 resume some torrents  
 `qbtlib.sh last | grep some | cut -f1 | qbtlib.sh resume`
@@ -31,7 +35,7 @@ files for last 5 added torrents
 top countries from active torrent  
 `qbtlib.sh active | cut -f1 | qbtlib.sh countries | qbtlib.sh top`
 
-number of peers from all coutries excluding one top country
+number of peers from all coutries excluding one top country  
 `qbtlib.sh active | cut -f1 | qbtlib.sh countries | qbtlib.sh top | head -n-1 | awk '{print $1}' | paste -sd+  | bc`
 
 upload monitor  
@@ -48,6 +52,10 @@ hashes from top countries
 
 content path of active torrents by top 4 coutries  
 `qbtlib.sh active | cut -f1 | qbtlib.sh countries | qbtlib.sh rawtop | tail -n4 | parallel qbtlib.sh tcountries | parallel -k --tag --colsep=$'\t' 'qbtlib.sh cpath {1}' | cut -f2- -d' ' | column -t -s$'\t'`
+
+
+qbt docs: https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#torrent-management
+
 
 ## fun
 

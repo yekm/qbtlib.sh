@@ -2,6 +2,8 @@
 # pixz -dc rutracker-20240127.xml.xz | grep -e '<title>' -e '<torrent ' -e '<forum ' >tttf.txt
 # curl http://localhost:8283/api/v2/torrents/info | jq -r '.[] | [.content_path, .hash] | @tsv' | parallel --eta bash mkrtrkr.sh
 
+# cd "$(cat dir.list | grep -i -w sabbath | fzf +x)"
+
 set -eu
 cpath=$(echo "$@" | cut -f1)
 hash=$(echo "$@" | cut -f2)

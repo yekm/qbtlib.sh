@@ -44,7 +44,7 @@ cache)
 	;;
 last)
 	torrents info -G --data "sort=added_on" | \
-		jq -r '.[] | [ .hash, .category, .content_path ] | @tsv' | \
+		jq -r '.[] | [ .hash, .category, .content_path, .progress*100 ] | @tsv' | \
 		zstdmt --adapt | tee $tmp | zstdmt -d
 	;;
 tfiles)
@@ -61,7 +61,7 @@ active)
 	torrents info -G \
 		--data "sort=added_on" \
 		--data "filter=active" | \
-		jq -r '.[] | [ .hash, .category, .content_path ] | @tsv'
+		jq -r '.[] | [ .hash, .category, .content_path, .progress*100 ] | @tsv'
 	;;
 active.js)
 	torrents info -G \
@@ -127,6 +127,7 @@ tcountries)
 monitor)
 	torrents info -G \
 		--data "sort=upspeed" \
+		--data "filter=uploading" \
 		--data "filter=active" | \
 		jq -r '.[] | [ .category, .name, .upspeed/1024/1024, .progress*100 ] | @tsv' | \
 		column --table -o' ' -C name=category,width=1,strictwidth,trunc -C name=name,width=10,strictwidth -C name=up,width=1,strictwidth -C name=compl,width=1,strictwidth,trunc -T 0 -R 3,4 -m -s$'\t'
@@ -138,15 +139,20 @@ monitor)
 monitor_dl)
 	torrents info -G \
 		--data "sort=dlspeed" \
+		--data "filter=downloading" \
 		--data "filter=active" | \
 		jq -r '.[] | [ .category, .name, .dlspeed/1024/1024, .progress*100 ] | @tsv' | \
-		column --table -N category,name,upspeed,completed -s$'\t'
+		column --table -N category,name,dlspeed,completed -s$'\t'
 	echo
 	transfer info | \
-		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024 ] | @tsv' | \
-		column --table -N status,dhtnodes,dl,up,total -s$'\t'
+		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024, .dl_rate_limit/1024/1024, .up_rate_limit/1024/1024 ] | @tsv' | \
+		column --table -N status,dhtnodes,dl,up,total,dl_rl,up_rl, -s$'\t'
 	;;
 
+togglespeed)
+	# wtf: GET reqest returns 405
+	transfer toggleSpeedLimitsMode -X POST
+	;;
 
 top)
 	sort | uniq -c | sort -n # without -r it's actually a `bottom`
