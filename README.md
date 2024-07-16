@@ -32,6 +32,9 @@ move last 40 added torrents
 files for last 5 added torrents  
 `qbtlib.sh cache | tail -n5 | parallel --tag -k 'qbtlib.sh tfiles {1}' | cut -f3- -d$'\t' | column -t -s$'\t'  -N name,file,done,sizeGB`
 
+top active categories  
+`qbtlib.sh active | cut -f2 | qbtlib.sh top`
+
 top countries from active torrent  
 `qbtlib.sh active | cut -f1 | qbtlib.sh countries | qbtlib.sh top`
 

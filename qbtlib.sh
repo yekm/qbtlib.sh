@@ -4,12 +4,14 @@ export PATH=$BASH_SOURCE:$PATH
 
 tmp=/tmp/qbtlib.sh.cache_$(date +%F_%R).zst
 
+export QBT_HOST=${QBT_HOST:-localhost:8283}
+
 _apicall() {
 	s=--silent
 	#s=--verbose
 	#set -vx
 	curl $s \
-		http://${QBT_HOST:-localhost:8283}/api/v2/$1/$2 \
+		http://$QBT_HOST/api/v2/$1/$2 \
 		"${@:3}"
 	#set +vx
 }
@@ -100,7 +102,7 @@ peerhashes)
 	parallel peerhashes
 	;;
 connections)
-	parallel 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .ip"'
+	parallel 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | [ .ip, .country ] | @tsv"'
 	;;
 peerfiles)
 	parallel --tag -k peerfiles
@@ -108,6 +110,7 @@ peerfiles)
 
 # "peers_country" by hashes
 countries)
+	#parallel -k 'sync torrentPeers -G --data "hash={}"'
 	parallel -k 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .country"'
 	;;
 
@@ -160,10 +163,33 @@ top)
 rawtop)
 	qbtlib.sh top | sed 's/ *[0-9]* //'
 	;;
+
+
+# systemd-run --user -E PATH --on-calendar=minutely -- bash qbtlib.sh influx
+influx)
+	sdir=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
+	read token <$sdir/.token.influx
+
+	cat >/tmp/qbtlib.sh.influx.data << EOF
+	active_torrents,host=$QBT_HOST value=$(qbtlib.sh active | wc -l) $(date +%s)
+	connections,host=$QBT_HOST value=$(qbtlib.sh active | cut -f1 | qbtlib.sh connections | wc -l) $(date +%s)
+	dl_speed,host=$QBT_HOST value=$(transfer info | jq -r .dl_info_speed) $(date +%s)
+	up_speed,host=$QBT_HOST value=$(transfer info | jq -r .up_info_speed) $(date +%s)
+EOF
+
+	curl -S -s \
+		'http://influx.lan/api/v2/write?org=h0me&bucket=qbt&precision=s' \
+		--header "Authorization: Token $token" \
+		--data-binary @/tmp/qbtlib.sh.influx.data
+
+	;;
+
+
 *)
 	echo no such command
 	exit -1
 	;;
+
 esac
 
 set +vx
