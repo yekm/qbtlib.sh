@@ -10,7 +10,7 @@ _apicall() {
 	s=--silent
 	#s=--verbose
 	#set -vx
-	curl $s \
+	curl -S $s \
 		http://$QBT_HOST/api/v2/$1/$2 \
 		"${@:3}"
 	#set +vx
@@ -39,8 +39,9 @@ peerfiles() {
 export -f _apicall torrents sync peerhashes peerfiles
 
 
-
-case $1 in
+cmd=$1
+shift
+case $cmd in
 cache)
 	cat $(ls -1t /tmp/qbtlib.sh.cache_* | head -n1) | zstdmt -d
 	;;
@@ -51,12 +52,12 @@ last)
 	;;
 tfiles)
 	torrents files -G \
-		--data "hash=$2" | \
+		--data "hash=$1" | \
 		jq -r '.[] | [ .name, .progress*100, .size/1024/1024/1024 ] | @tsv'
 	;;
 cpath)
 	torrents info -G \
-		--data "hashes=$2" | \
+		--data "hashes=$1" | \
 		jq -r '.[] | .content_path'
 	;;
 active)
@@ -80,14 +81,14 @@ recheck)
 	torrents recheck -X POST --data "hashes=$hashes"
 	;;
 set_location)
-	[ -z "$2" ] && echo specify location as first arg && exit -1
+	[ -z "$1" ] && echo specify location as first arg && exit -1
 	hashes=$(paste -sd\|)
-	torrents setLocation -X POST --data "hashes=$hashes" --data "location=$2"
+	torrents setLocation -X POST --data "hashes=$hashes" --data "location=$1"
 	;;
 set_category)
-	[ -z "$2" ] && echo specify catgory as first arg && exit -1
+	[ -z "$1" ] && echo specify catgory as first arg && exit -1
 	hashes=$(paste -sd\|)
-	torrents setCategory -X POST --data "hashes=$hashes" --data "category=$2"
+	torrents setCategory -X POST --data "hashes=$hashes" --data "category=$1"
 	;;
 qtop)
 	hashes=$(paste -sd\|)
@@ -103,6 +104,9 @@ peerhashes)
 	;;
 connections)
 	parallel 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | [ .ip, .country ] | @tsv"'
+	;;
+connections2)
+	parallel 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | [ .country, .ip, .flags ] | @tsv"'
 	;;
 peerfiles)
 	parallel --tag -k peerfiles
@@ -121,7 +125,7 @@ icountries)
 
 # "hash" by coutry
 tcountries)
-	qbtlib.sh active | cut -f1 | qbtlib.sh icountries | grep "$2" | rev | uniq -f1 | rev
+	qbtlib.sh active | cut -f1 | qbtlib.sh icountries | grep "$1" | rev | uniq -f1 | rev
 	;;
 
 # jq's floor should be embedded in an arrray.
@@ -157,6 +161,12 @@ togglespeed)
 	transfer toggleSpeedLimitsMode -X POST
 	;;
 
+gspeed)
+	[ $# -eq 0 ] && echo "up limit $(transfer downloadLimit) down limit $(transfer uploadLimit)"
+	[ -n "$1" ] && transfer setUploadLimit --data limit=$1
+	[ -n "$2" ] && transfer setDownloadLimit --data limit=$2
+	;;
+
 top)
 	sort | uniq -c | sort -n # without -r it's actually a `bottom`
 	;;
@@ -170,11 +180,14 @@ influx)
 	sdir=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
 	read token <$sdir/.token.influx
 
+	# all sorts of weird stuff in grafana without aligned time in data points
+	d=$(date +%s)
+
 	cat >/tmp/qbtlib.sh.influx.data << EOF
-	active_torrents,host=$QBT_HOST value=$(qbtlib.sh active | wc -l) $(date +%s)
-	connections,host=$QBT_HOST value=$(qbtlib.sh active | cut -f1 | qbtlib.sh connections | wc -l) $(date +%s)
-	dl_speed,host=$QBT_HOST value=$(transfer info | jq -r .dl_info_speed) $(date +%s)
-	up_speed,host=$QBT_HOST value=$(transfer info | jq -r .up_info_speed) $(date +%s)
+	active_torrents,host=$QBT_HOST value=$(qbtlib.sh active | wc -l) $d
+	connections,host=$QBT_HOST value=$(qbtlib.sh active | cut -f1 | qbtlib.sh connections | wc -l) $d
+	dl_speed,host=$QBT_HOST value=$(transfer info | jq -r .dl_info_speed) $d
+	up_speed,host=$QBT_HOST value=$(transfer info | jq -r .up_info_speed) $d
 EOF
 
 	curl -S -s \
