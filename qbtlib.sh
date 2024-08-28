@@ -1,8 +1,11 @@
 #!/bin/bash
 
+#set -u
+
 export PATH=$BASH_SOURCE:$PATH
 
 tmp=/tmp/qbtlib.sh.cache_$(date +%F_%R).zst
+shlog=/tmp/qbtlib_speedhistory.log
 
 export QBT_HOST=${QBT_HOST:-localhost:8283}
 
@@ -163,8 +166,14 @@ togglespeed)
 
 gspeed)
 	[ $# -eq 0 ] && echo "up limit $(transfer downloadLimit) down limit $(transfer uploadLimit)"
-	[ -n "$1" ] && transfer setUploadLimit --data limit=$1
-	[ -n "$2" ] && transfer setDownloadLimit --data limit=$2
+	# global speed limits in MiB
+	[ -n "$1" ] && transfer setUploadLimit --data limit=$(( $1 * 1024 * 1024 ))
+	[ -n "$2" ] && transfer setDownloadLimit --data limit=$(( $2 * 1024 * 1024 ))
+	;;
+
+speednow)
+	transfer info | \
+		jq -r '[ .up_info_speed/1024/1024, .dl_info_speed/1024/1204 ] | @tsv'
 	;;
 
 top)
@@ -197,6 +206,34 @@ EOF
 
 	;;
 
+
+# systemd-run --user -E PATH --on-calendar=minutely -- bash qbtlib.sh speedhistory ishotthesherrifff
+speedhistory)
+	# nb: infinitie memory fill
+	if [ "$1" = "ishotthesherrifff" ] ; then
+		printf "%s\t%s\t%s\t%s\n" $QBT_HOST $(date +%s) $(qbtlib.sh speednow) | tee -a $shlog
+		exit
+	fi
+
+	cat $shlog | grep $QBT_HOST | cut -f 2-4 | \
+		gnuplot -p -e "set timefmt '%s'; set xdata time; plot '-' using 1:2 with lines"
+;;
+
+# https://github.com/holman/spark
+sparkhistory)
+	cc=$(( $(tput cols) - 32 ))
+	#echo $cc
+	max_ul=$(cat $shlog | cut -f 3 | sort | tail -n1)
+	min_ul=$(cat $shlog | cut -f 3 | sort | head -n1)
+	max_dl=$(cat $shlog | cut -f 4 | sort | tail -n1)
+	min_dl=$(cat $shlog | cut -f 4 | sort | head -n1)
+	now=$(date +%R -d @$(tail -n1 $shlog | cut -f 2))
+	then=$(date +%R -d @$(head -n1 $shlog | cut -f 2))
+	printf "$cc max    / min %8s %${cc}s\n" "$now" "$then"
+	then=$(date +%R -d @$(tail -n$cc $shlog | head -n1 | cut -f 2))
+	printf "ul %7.3f/%7.3f %s %s %s\n" $max_ul $min_ul "$(tail -n $cc $shlog | cut -f 3 | tac | spark)" "$then"
+	printf "dl %7.3f/%7.3f %s %s %s\n" $max_dl $min_dl "$(tail -n $cc $shlog | cut -f 4 | tac | spark)" "$then"
+;;
 
 *)
 	echo no such command
