@@ -219,14 +219,17 @@ speedhistory)
 		gnuplot -p -e "set timefmt '%s'; set xdata time; plot '-' using 1:2 with lines"
 ;;
 
+ss)
+	cat $shlog | grep $QBT_HOST
+;;
+
 # https://github.com/holman/spark
 sparkhistory)
 	cc=$(( $(tput cols) - 32 ))
-	#echo $cc
-	max_ul=$(cat $shlog | cut -f 3 | sort | tail -n1)
-	min_ul=$(cat $shlog | cut -f 3 | sort | head -n1)
-	max_dl=$(cat $shlog | cut -f 4 | sort | tail -n1)
-	min_dl=$(cat $shlog | cut -f 4 | sort | head -n1)
+	max_ul=$(cat $shlog | cut -f 3 | grep -v ^$ | sort | tail -n1)
+	min_ul=$(cat $shlog | cut -f 3 | grep -v ^$ | sort | head -n1)
+	max_dl=$(cat $shlog | cut -f 4 | grep -v ^$ | sort | tail -n1)
+	min_dl=$(cat $shlog | cut -f 4 | grep -v ^$ | sort | head -n1)
 	now=$(date +%R -d @$(tail -n1 $shlog | cut -f 2))
 	then=$(date +%R -d @$(head -n1 $shlog | cut -f 2))
 	printf "$cc max    / min %8s %${cc}s\n" "$now" "$then"
