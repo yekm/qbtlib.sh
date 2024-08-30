@@ -39,7 +39,30 @@ peerfiles() {
 	peerhashes $1 | cut -f1 | parallel qbtlib.sh cpath
 }
 
-export -f _apicall torrents sync peerhashes peerfiles
+recheckwait() {
+	echo $1 | qbtlib.sh recheck
+
+	# waiting for qbt to start checking
+	i=0
+	while [ $(echo $1 | qbtlib.sh tinfo | jq -r ".[] | .state") != "checkingUP" ]; do
+		(( i++ ))
+		if [ $i -gt 16 ]; then
+			echo -n TIMEOUT in $i seconds:\ 
+			echo $1 | qbtlib.sh tinfo | jq -r ".[] | [.state, .name] | @tsv"
+			exit
+		fi
+		sleep 1
+	done
+
+	# waiting for qbt to end checking
+	while [ $(echo $1 | qbtlib.sh tinfo | jq -r ".[] | .state") == "checkingUP" ]; do
+		sleep 2
+	done
+	echo -n recheck done:\ 
+	echo $1 | qbtlib.sh tinfo | jq -r ".[] | [.state, .name] | @tsv"
+}
+
+export -f _apicall torrents sync peerhashes peerfiles recheckwait
 
 
 cmd=$1
@@ -57,6 +80,11 @@ tfiles)
 	torrents files -G \
 		--data "hash=$1" | \
 		jq -r '.[] | [ .name, .progress*100, .size/1024/1024/1024 ] | @tsv'
+	;;
+tinfo)
+	hashes=$(paste -sd\|)
+	torrents info -G \
+		--data "hashes=$hashes" | jq
 	;;
 cpath)
 	torrents info -G \
@@ -83,6 +111,12 @@ recheck)
 	hashes=$(paste -sd\|)
 	torrents recheck -X POST --data "hashes=$hashes"
 	;;
+
+slowcheck)
+	j=${1:-2}
+	parallel -j$j --eta --lb --tag recheckwait
+	;;
+
 set_location)
 	[ -z "$1" ] && echo specify location as first arg && exit -1
 	hashes=$(paste -sd\|)
