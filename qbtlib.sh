@@ -107,6 +107,10 @@ resume)
 	hashes=$(paste -sd\|)
 	torrents resume -X POST --data "hashes=$hashes"
 	;;
+pause)
+	hashes=$(paste -sd\|)
+	torrents pause -X POST --data "hashes=$hashes"
+	;;
 recheck)
 	hashes=$(paste -sd\|)
 	torrents recheck -X POST --data "hashes=$hashes"
@@ -259,6 +263,9 @@ ss)
 
 # https://github.com/holman/spark
 sparkhistory)
+	which spark >/dev/null || exit -1
+	[ -s $shlog ] || echo 'no speed history file, run `qbtlib.sh speedhistory ishotthesherrifff` every N seconds'
+
 	cc=$(( $(tput cols) - 32 ))
 	max_ul=$(cat $shlog | cut -f 3 | grep -v ^$ | sort | tail -n1)
 	min_ul=$(cat $shlog | cut -f 3 | grep -v ^$ | sort | head -n1)

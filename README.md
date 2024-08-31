@@ -1,9 +1,12 @@
 # qbtlib.sh
-bash library to manipulate qbittorent via web api
+bash library to manipulate qbittorent via web api  
+or  
+practical introduction to gnu parallel and jq. `jq` is used for filtering and converting
+json data from qbittorrent to TSV format on which simple tools like `head` and `grep` can be used.
 
 
 ## installation
-`cp` and `cmof +x` somewhere in PATH. `chmod +x` is a must because it uses recursion
+`cp` and `chmod +x` somewhere in PATH. `chmod +x` is a must because it uses recursion
 
 dependencies: bash, curl, jq, gnu parallel, awk, util-linux, coreutils
 
