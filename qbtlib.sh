@@ -39,12 +39,32 @@ peerfiles() {
 	peerhashes $1 | cut -f1 | parallel qbtlib.sh cpath
 }
 
+tstate() {
+	echo $1 | qbtlib.sh tinfo | jq -r ".[] | .state"
+}
+
+# error missingFiles uploading pausedUP queuedUP stalledUP checkingUP forcedUP allocating downloading metaDL pausedDL queuedDL stalledDL checkingDL forcedDL checkingResumeData moving unknown 
+
 recheckwait() {
+	tstate $1 | grep \
+		-e checkingUP \
+		-e checkingDL \
+		-e allocating \
+		-e downloading \
+		-e metaDL \
+		-e pausedDL \
+		-e queuedDL \
+		-e stalledDL \
+		-e checkingResumeData \
+		-e moving \
+		-e unknown \
+	&& exit
+
 	echo $1 | qbtlib.sh recheck
 
 	# waiting for qbt to start checking
 	i=0
-	while [ $(echo $1 | qbtlib.sh tinfo | jq -r ".[] | .state") != "checkingUP" ]; do
+	while [ $(tstate $1) != "checkingUP" ]; do
 		(( i++ ))
 		if [ $i -gt 16 ]; then
 			echo -n TIMEOUT in $i seconds:\ 
@@ -55,14 +75,14 @@ recheckwait() {
 	done
 
 	# waiting for qbt to end checking
-	while [ $(echo $1 | qbtlib.sh tinfo | jq -r ".[] | .state") == "checkingUP" ]; do
+	while [ $(tstate $1) == "checkingUP" ]; do
 		sleep 2
 	done
 	echo -n recheck done:\ 
 	echo $1 | qbtlib.sh tinfo | jq -r ".[] | [.state, .name] | @tsv"
 }
 
-export -f _apicall torrents sync peerhashes peerfiles recheckwait
+export -f _apicall torrents sync peerhashes peerfiles recheckwait tstate
 
 
 cmd=$1
@@ -81,7 +101,7 @@ tfiles)
 		--data "hash=$1" | \
 		jq -r '.[] | [ .name, .progress*100, .size/1024/1024/1024 ] | @tsv'
 	;;
-tinfo)
+tinfo.jsgi)
 	hashes=$(paste -sd\|)
 	torrents info -G \
 		--data "hashes=$hashes" | jq
@@ -118,7 +138,7 @@ recheck)
 
 slowcheck)
 	j=${1:-2}
-	parallel -j$j --eta --lb --tag recheckwait
+	parallel -j$j --joblog slowcheck.joblog --halt soon,fail=1 --resume --eta --lb --tag recheckwait
 	;;
 
 set_location)
