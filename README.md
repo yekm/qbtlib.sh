@@ -79,6 +79,30 @@ recheck N torrents at a time
 
 qbt docs: https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#torrent-management
 
+## fun
+
+Total created processes:
+```
+# content path of active torrents by top 4 coutries
+$ time strace -e none -ff bash -c "qbtlib.sh active | cut -f1 | qbtlib.sh countries | qbtlib.sh rawtop | tail -n4 | parallel qbtlib.sh tcountries | parallel -k --tag --colsep=$'\t' 'qbtlib.sh cpath {1}' | cut -f2- -d' ' | column -t -s$'\t' " |& grep Process | grep attached | wc -l
+5119
+
+real    0m9.924s
+user    0m16.649s
+sys     0m19.255s
+
+# files from top 10 peers
+$ time strace -e none -ff bash -c "qbtlib.sh active | cut -f1 | qbtlib.sh connections | qbtlib.sh rawtop | tail -n10 | qbtlib.sh peerfiles" |& grep Process | grep attached | wc -l
+11121
+
+real    0m24.237s
+user    0m39.619s
+sys     0m53.063s
+
+```
+
+## help
+
 ```
 $ qbtlib.sh help
 cache         ... print cached `qbtlib.sh last`
@@ -111,8 +135,10 @@ monitor_dl    ... list downloading torrent to sorted by `dlspeed`
 togglespeed   ... toggle alternative speed limits
 gspeed        ... [ul] [dl] get/set global up/dl limits in MiB
 speednow      ... current speed ul dl
-top           ... actually bottom
-rawtop        ... same as bove but without first column of numbers
+sl            ... speed limits mode
+preferences   ... app preferences
+top           .|. actually bottom
+rawtop        .|. same as bove but without first column of numbers
 influx        ... store number of active torrents and connections, and ul dl speed in influxdb
 speedhistory  ... <EULA> apeend writes current date and speed in /tmp/qbtlib_speedhistory.log
 ss            ... cat /tmp/qbtlib_speedhistory.log
@@ -130,26 +156,5 @@ qbtlib.sh cache1 | tail -n5 | parallel -k qbtlib.sh tfiles | cut -f1- | column -
 watch 'qbtlib.sh monitor | tail -n50'
 qbtlib.sh active | cut -f1 | qbtlib.sh connections | qbtlib.sh top
 qbtlib.sh active1 | qbtlib.sh countries | qbtlib.sh rawtop | tail -n4 | parallel -k qbtlib.sh tcountries | parallel -k --tag --colsep=$'\t' 'echo {1} | qbtlib.sh cpath' | cut -f2- -d' ' | column -t -s$'\t'
-```
-
-## fun
-
-Total created processes:
-```
-# content path of active torrents by top 4 coutries
-$ time strace -e none -ff bash -c "qbtlib.sh active | cut -f1 | qbtlib.sh countries | qbtlib.sh rawtop | tail -n4 | parallel qbtlib.sh tcountries | parallel -k --tag --colsep=$'\t' 'qbtlib.sh cpath {1}' | cut -f2- -d' ' | column -t -s$'\t' " |& grep Process | grep attached | wc -l
-5119
-
-real    0m9.924s
-user    0m16.649s
-sys     0m19.255s
-
-# files from top 10 peers
-$ time strace -e none -ff bash -c "qbtlib.sh active | cut -f1 | qbtlib.sh connections | qbtlib.sh rawtop | tail -n10 | qbtlib.sh peerfiles" |& grep Process | grep attached | wc -l
-11121
-
-real    0m24.237s
-user    0m39.619s
-sys     0m53.063s
 
 ```

@@ -57,6 +57,10 @@ transfer() {
 	_apicall transfer $@
 }
 
+app() {
+	_apicall app $@
+}
+
 # show all active torrents | get their peers | grep by ip
 peerhashes() {
 	qbtlib.sh active1 | qbtlib.sh connections | grep -F -w "$1"
@@ -312,12 +316,32 @@ speednow)
 		jq -r '[ .up_info_speed/1024/1024, .dl_info_speed/1024/1204 ] | @tsv'
 	;;
 
+sl)
+	[ -n "$help" ] && die "... speed limits mode"
+	echo -n "alternative speed limits "
+	[ $(transfer speedLimitsMode) -eq 1 ] && echo enabled || echo disabled
+	echo -n "scheduler "
+	[ $(app preferences | jq -r .scheduler_enabled) = "true" ] && echo enabled || echo disabled
+	;;
+
+preferences)
+	[ -n "$help" ] && die "... app preferences"
+	app preferences \
+		| jq -r 'to_entries | map(select(.key != "scan_dirs"))[] | [ .key, .value ] | @tsv' \
+		| column -t -s$'\t' \
+		| less
+	;;
+# todo:
+# `dumpPreferences` in json, then sed it and pipe to `setPreferences`
+# `setPreferences` use same filter as in `preferences` and `diff --word-diff old new`
+
+
 top)
-	[ -n "$help" ] && die "... actually bottom"
+	[ -n "$help" ] && die ".|. actually bottom"
 	sort | uniq -c $@ | sort -n # without -r it's actually a `bottom`
 	;;
 rawtop)
-	[ -n "$help" ] && die "... same as bove but without first column of numbers"
+	[ -n "$help" ] && die ".|. same as bove but without first column of numbers"
 	qbtlib.sh top $@ | sed 's/^ *[0-9]* //'
 	;;
 
