@@ -370,17 +370,29 @@ EOF
 	;;
 
 
-# systemd-run --user -E PATH --on-calendar=minutely -- bash qbtlib.sh speedhistory ishotthesherrifff
-speedhistory)
-	[ -n "$help" ] && die "... <EULA> apeend writes current date and speed in $shlog"
-	# nb: infinitie memory fill, must supply the password, like you read the code and understand what it does
-	if [ "$1" = "ishotthesherrifff" ] ; then
-		printf "%s\t%s\t%s\t%s\n" $QBT_HOST $(date +%s) $(qbtlib.sh speednow) | tee -a $shlog
-		exit
-	fi
+# systemd-run --user -E PATH --on-calendar=minutely -- bash qbtlib.sh appendspeedhistory
+appendspeedhistory)
+	[ -n "$help" ] && die "... apeend writes current date and speed in $shlog"
+	printf "%s\t%s\t%s\t%s\n" $QBT_HOST $(date +%s) $(qbtlib.sh speednow) | tee -a $shlog
+	;;
 
-	cat $shlog | grep $QBT_HOST | cut -f 2-4 | \
-		gnuplot -p -e "set timefmt '%s'; set xdata time; plot '-' using 1:2 with lines"
+plotspeed)
+	[ -n "$help" ] && die "... plot saved speed history with gnuplot"
+
+	set -e
+	which gnuplot >/dev/null
+	[ -s $shlog ] || die 'no speed history file'
+
+	t=$(mktemp)
+	cat $shlog | grep $QBT_HOST | cut -f 2-4 >$t
+	echo gnuplot quirks: hit enter to exit
+	cat | gnuplot -p << EOF
+	set timefmt '%s'
+	set xdata time
+	plot '$t' using 1:2 with lines lc "red" title "up", \
+	     '$t' using 1:3 with lines lc "green" title "down"
+EOF
+	rm $t
 ;;
 
 ss)

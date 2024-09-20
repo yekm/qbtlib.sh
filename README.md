@@ -105,44 +105,45 @@ sys     0m53.063s
 
 ```
 $ qbtlib.sh help
-cache         ... print cached `qbtlib.sh last`
-cache1        ... print only hashes from cached `qbtlib.sh last`
-last          ... list torrents sotred by `added_on`
-active        ... list torrents sotred by `added_on` filtered by `active`
-active1       ... list only hashes sotred by `added_on` filtered by `active`
-active.js     ... list torrents sotred by `added_on` filtered by `active` in json
-tinfo.js      h|p torrent info in json
-resume        h|p resume torrents
-pause         h|p pause torrents
-recheck       h|p recheck torrents
-slowcheck     h|. [arg1=2] recheck torrents `arg1` at a time, default 2
-tfiles        ... <hash> list files by one `hash` (name, progress, size in GiB)
-tfiles.js     ... <hash> list files by one `hash` in json
-cpath         h|p list content path by hashes
-set_location  h|p <arg1> moves torrents to a new location `arg1`
-set_category  h|p <arg1> set cetegory to `<arg1>` on torrents
-qtop          h|p move torrents on top of the queue
-qbottom       h|p move torrents on bottom of the queue
-peerhashes    ip| list hashes on a peer
-peerpaths     ip| list content paths by peer
-connections   h|. list peers on a hash
-connections2  h|. list peers on a hash sorted by country
-countries     h|. list peer countries by hash
-icountries    h|. list peer countries by hash with --tag
-tcountries    ... <country> hashes by `country`. (active list icountries hashes grepped by `country`
-monitor       ... list uploading torrent to sorted by `upspeed`
-monitor_dl    ... list downloading torrent to sorted by `dlspeed`
-togglespeed   ... toggle alternative speed limits
-gspeed        ... [ul] [dl] get/set global up/dl limits in MiB
-speednow      ... current speed ul dl
-sl            ... speed limits mode
-preferences   ... app preferences
-top           .|. actually bottom
-rawtop        .|. same as bove but without first column of numbers
-influx        ... store number of active torrents and connections, and ul dl speed in influxdb
-speedhistory  ... <EULA> apeend writes current date and speed in /tmp/qbtlib_speedhistory.log
-ss            ... cat /tmp/qbtlib_speedhistory.log
-sparkhistory  ... ▇▅▃█▆
+cache               ... print cached `qbtlib.sh last`
+cache1              ... print only hashes from cached `qbtlib.sh last`
+last                ... list torrents sotred by `added_on`
+active              ... list torrents sotred by `added_on` filtered by `active`
+active1             ... list only hashes sotred by `added_on` filtered by `active`
+active.js           ... list torrents sotred by `added_on` filtered by `active` in json
+tinfo.js            h|p torrent info in json
+resume              h|p resume torrents
+pause               h|p pause torrents
+recheck             h|p recheck torrents
+slowcheck           h|. [arg1=2] recheck torrents `arg1` at a time, default 2
+tfiles              ... <hash> list files by one `hash` (name, progress, size in GiB)
+tfiles.js           ... <hash> list files by one `hash` in json
+cpath               h|p list content path by hashes
+set_location        h|p <arg1> moves torrents to a new location `arg1`
+set_category        h|p <arg1> set cetegory to `<arg1>` on torrents
+qtop                h|p move torrents on top of the queue
+qbottom             h|p move torrents on bottom of the queue
+peerhashes          ip| list hashes on a peer
+peerpaths           ip| list content paths by peer
+connections         h|. list peers on a hash
+connections2        h|. list peers on a hash sorted by country
+countries           h|. list peer countries by hash
+icountries          h|. list peer countries by hash with --tag
+tcountries          ... <country> hashes by `country`. (active list icountries hashes grepped by `country`
+monitor             ... list uploading torrent to sorted by `upspeed`
+monitor_dl          ... list downloading torrent to sorted by `dlspeed`
+togglespeed         ... toggle alternative speed limits
+gspeed              ... [ul] [dl] get/set global up/dl limits in MiB
+speednow            ... current speed ul dl
+sl                  ... speed limits mode
+preferences         ... app preferences
+top                 .|. actually bottom
+rawtop              .|. same as bove but without first column of numbers
+influx              ... store number of active torrents and connections, and ul dl speed in influxdb
+appendspeedhistory  ... apeend writes current date and speed in /tmp/qbtlib_speedhistory.log
+plotspeed           ... plot saved speed history with gnuplot
+ss                  ... cat /tmp/qbtlib_speedhistory.log
+sparkhistory        ... ▇▅▃█▆
 
 examples:
 qbtlib.sh cache | grep some | cut -f1 | qbtlib.sh resume
