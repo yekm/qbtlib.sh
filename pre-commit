@@ -1,0 +1,4 @@
+echo $0: updating help in README.md
+( cat README.md | sed '/qbtlib.sh help/,/```/d' ; echo '$ qbtlib.sh help' ; qbtlib.sh help; echo '```') | sponge README.md
+git add README.md
+
