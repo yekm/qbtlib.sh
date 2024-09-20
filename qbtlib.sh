@@ -9,6 +9,32 @@ shlog=/tmp/qbtlib_speedhistory.log
 
 export QBT_HOST=${QBT_HOST:-localhost:8283}
 
+die() {
+	echo $@
+	exit 1
+}
+
+helpall() {
+	# grep possible arguments from self
+	cat ${BASH_SOURCE[0]} | grep -P '^[\w\.]+\)' | tr -d ')' | \
+		parallel --tag -k qbtlib.sh help | column -t -s$'\t'
+	cat << EOF
+
+examples:
+qbtlib.sh cache | grep some | cut -f1 | qbtlib.sh resume
+qbtlib.sh cache | grep '100$' | less
+qbtlib.sh cache | grep -v '100$' | less
+qbtlib.sh cache | grep some | cut -f1 | qbtlib.sh set_category newcategory
+qbtlib.sh cache | grep some | cut -f1 | qbtlib.sh set_location /new/location
+qbtlib.sh active1 | qbtlib.sh countries | qbtlib.sh top
+qbtlib.sh tcountries korea | cut -f1 | qbtlib.sh cpath
+qbtlib.sh cache1 | tail -n5 | parallel -k qbtlib.sh tfiles | cut -f1- | column -t -s$'\t' -N file,progress,sizeGB
+watch 'qbtlib.sh monitor | tail -n50'
+qbtlib.sh active | cut -f1 | qbtlib.sh connections | qbtlib.sh top
+qbtlib.sh active1 | qbtlib.sh countries | qbtlib.sh rawtop | tail -n4 | parallel -k qbtlib.sh tcountries | parallel -k --tag --colsep=$'\t' 'echo {1} | qbtlib.sh cpath' | cut -f2- -d' ' | column -t -s$'\t'
+EOF
+}
+
 _apicall() {
 	s=--silent
 	#s=--verbose
@@ -33,10 +59,10 @@ transfer() {
 
 # show all active torrents | get their peers | grep by ip
 peerhashes() {
-	qbtlib.sh active | cut -f1 | parallel --tag 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .ip"' | grep -F -w $1
+	qbtlib.sh active1 | qbtlib.sh connections | grep -F -w "$1"
 }
-peerfiles() {
-	peerhashes $1 | cut -f1 | parallel qbtlib.sh cpath
+peerpaths() {
+	peerhashes $1 | cut -f1 | qbtlib.sh cpath
 }
 
 tstate() {
@@ -82,117 +108,165 @@ recheckwait() {
 	echo $1 | qbtlib.sh tinfo | jq -r ".[] | [.state, .name] | @tsv"
 }
 
-export -f _apicall torrents sync peerhashes peerfiles recheckwait tstate
+export -f _apicall torrents sync peerhashes peerpaths recheckwait tstate
 
 
 cmd=$1
 shift
+if [ "$cmd" = "help" ]; then
+	help=1
+	cmd=$1
+	shift
+fi
+
+[ -z "$cmd" ] && helpall && die
+
 case $cmd in
 cache)
+	[ -n "$help" ] && die '... print cached `qbtlib.sh last`'
 	cat $(ls -1t /tmp/qbtlib.sh.cache_* | head -n1) | zstdmt -d
+	# todo: tmp cleanup
+	;;
+cache1)
+	[ -n "$help" ] && die '... print only hashes from cached `qbtlib.sh last`'
+	qbtlib.sh cache | cut -f1
 	;;
 last)
+	[ -n "$help" ] && die '... list torrents sotred by `added_on`'
 	torrents info -G --data "sort=added_on" | \
 		jq -r '.[] | [ .hash, .category, .content_path, .progress*100 ] | @tsv' | \
 		zstdmt --adapt | tee $tmp | zstdmt -d
 	;;
-tfiles)
-	torrents files -G \
-		--data "hash=$1" | \
-		jq -r '.[] | [ .name, .progress*100, .size/1024/1024/1024 ] | @tsv'
-	;;
-tinfo.jsgi)
-	hashes=$(paste -sd\|)
-	torrents info -G \
-		--data "hashes=$hashes" | jq
-	;;
-cpath)
-	torrents info -G \
-		--data "hashes=$1" | \
-		jq -r '.[] | .content_path'
-	;;
 active)
+	[ -n "$help" ] && die '... list torrents sotred by `added_on` filtered by `active`'
 	torrents info -G \
 		--data "sort=added_on" \
 		--data "filter=active" | \
 		jq -r '.[] | [ .hash, .category, .content_path, .progress*100 ] | @tsv'
 	;;
+active1)
+	[ -n "$help" ] && die '... list only hashes sotred by `added_on` filtered by `active`'
+	qbtlib.sh active | cut -f1
+	;;
 active.js)
+	[ -n "$help" ] && die '... list torrents sotred by `added_on` filtered by `active` in json'
 	torrents info -G \
 		--data "sort=added_on" \
 		--data "filter=active" | \
 		jq
 	;;
+tinfo.js)
+	[ -n "$help" ] && die 'h|p torrent info in json'
+	hashes=$(paste -sd\|)
+	torrents info -G \
+		--data "hashes=$hashes" | jq
+	;;
 resume)
+	[ -n "$help" ] && die 'h|p resume torrents'
 	hashes=$(paste -sd\|)
 	torrents resume -X POST --data "hashes=$hashes"
 	;;
 pause)
+	[ -n "$help" ] && die 'h|p pause torrents'
 	hashes=$(paste -sd\|)
 	torrents pause -X POST --data "hashes=$hashes"
 	;;
 recheck)
+	[ -n "$help" ] && die 'h|p recheck torrents'
 	hashes=$(paste -sd\|)
 	torrents recheck -X POST --data "hashes=$hashes"
 	;;
-
 slowcheck)
+	[ -n "$help" ] && die 'h|. [arg1=2] recheck torrents `arg1` at a time, default 2'
 	j=${1:-2}
 	parallel -j$j --joblog slowcheck.joblog --halt soon,fail=1 --resume --eta --lb --tag recheckwait
 	;;
 
+tfiles)
+	[ -n "$help" ] && die '... <hash> list files by one `hash` (name, progress, size in GiB)'
+	torrents files -G --data "hash=$1" | \
+		jq -r '.[] | [ .name, .progress*100, .size/1024/1024/1024 ] | @tsv'
+	;;
+tfiles.js)
+	[ -n "$help" ] && die '... <hash> list files by one `hash` in json'
+	torrents files -G --data "hash=$1" | jq
+	;;
+cpath)
+	[ -n "$help" ] && die 'h|p list content path by hashes'
+	hashes=$(paste -sd\|)
+	torrents info -G \
+		--data "hashes=$hashes" | \
+		jq -r '.[] | [ .category, .content_path ] | @tsv' | sort | column -t -s$'\t'
+	;;
+
 set_location)
-	[ -z "$1" ] && echo specify location as first arg && exit -1
+	[ -n "$help" ] && die 'h|p <arg1> moves torrents to a new location `arg1`'
+	[ -z "$1" ] && die specify location as first arg
 	hashes=$(paste -sd\|)
 	torrents setLocation -X POST --data "hashes=$hashes" --data "location=$1"
 	;;
 set_category)
-	[ -z "$1" ] && echo specify catgory as first arg && exit -1
+	[ -n "$help" ] && die 'h|p <arg1> set cetegory to `<arg1>` on torrents'
+	[ -z "$1" ] && die specify catgory as first arg
 	hashes=$(paste -sd\|)
 	torrents setCategory -X POST --data "hashes=$hashes" --data "category=$1"
 	;;
+
 qtop)
+	[ -n "$help" ] && die 'h|p move torrents on top of the queue'
 	hashes=$(paste -sd\|)
 	torrents topPrio -X POST --data "hashes=$hashes"
 	;;
 qbottom)
+	[ -n "$help" ] && die 'h|p move torrents on bottom of the queue'
 	hashes=$(paste -sd\|)
 	torrents bottomPrio -X POST --data "hashes=$hashes"
 	;;
 
+
 peerhashes)
-	parallel peerhashes
+	[ -n "$help" ] && die 'ip| list hashes on a peer'
+	parallel --tag -k peerhashes
+	;;
+peerpaths)
+	[ -n "$help" ] && die 'ip| list content paths by peer'
+	parallel --tag -k peerpaths
 	;;
 connections)
-	parallel 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | [ .ip, .country ] | @tsv"'
+	[ -n "$help" ] && die 'h|. list peers on a hash'
+	parallel --tag 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .ip"' | \
+	sort
 	;;
 connections2)
-	parallel 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | [ .country, .ip, .flags ] | @tsv"'
-	;;
-peerfiles)
-	parallel --tag -k peerfiles
+	[ -n "$help" ] && die 'h|. list peers on a hash sorted by country'
+	parallel 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | [ .country, .ip, .flags ] | @tsv"' \
+		| sort
 	;;
 
-# "peers_country" by hashes
 countries)
-	#parallel -k 'sync torrentPeers -G --data "hash={}"'
+	[ -n "$help" ] && die 'h|. list peer countries by hash'
 	parallel -k 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .country"'
 	;;
 
-# "hash peers_country" by hashes
 icountries)
+	[ -n "$help" ] && die 'h|. list peer countries by hash with --tag'
 	parallel -k --tag 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .country"'
 	;;
 
 # "hash" by coutry
 tcountries)
-	qbtlib.sh active | cut -f1 | qbtlib.sh icountries | grep "$1" | rev | uniq -f1 | rev
+	[ -n "$help" ] && die '... <country> hashes by `country`. (active list icountries hashes grepped by `country`'
+	qbtlib.sh active1 \
+		| qbtlib.sh icountries \
+		| grep -i "$1" \
+		| rev | uniq -f1 | rev
 	;;
 
 # jq's floor should be embedded in an arrray.
 # echo '{"mass": 188.72, "shit": 100}' | jq ' [ [.mass|floor] , .shit ] | flatten'
 # looks ugly
 monitor)
+	[ -n "$help" ] && die '... list uploading torrent to sorted by `upspeed`'
 	torrents info -G \
 		--data "sort=upspeed" \
 		--data "filter=uploading" \
@@ -205,6 +279,7 @@ monitor)
 		column --table -N status,dhtnodes,dl,up,total -s$'\t'
 	;;
 monitor_dl)
+	[ -n "$help" ] && die '... list downloading torrent to sorted by `dlspeed`'
 	torrents info -G \
 		--data "sort=dlspeed" \
 		--data "filter=downloading" \
@@ -218,32 +293,38 @@ monitor_dl)
 	;;
 
 togglespeed)
+	[ -n "$help" ] && die '... toggle alternative speed limits'
 	# wtf: GET reqest returns 405
 	transfer toggleSpeedLimitsMode -X POST
 	;;
 
 gspeed)
-	[ $# -eq 0 ] && echo "up limit $(transfer downloadLimit) down limit $(transfer uploadLimit)"
-	# global speed limits in MiB
+	[ -n "$help" ] && die '... [ul] [dl] get/set global up/dl limits in MiB'
+	[ $# -ne 0 ] && echo "up limit before $(transfer downloadLimit) down limit $(transfer uploadLimit)"
 	[ -n "$1" ] && transfer setUploadLimit --data limit=$(( $1 * 1024 * 1024 ))
 	[ -n "$2" ] && transfer setDownloadLimit --data limit=$(( $2 * 1024 * 1024 ))
+	echo "up limit now $(transfer downloadLimit) down limit $(transfer uploadLimit)"
 	;;
 
 speednow)
+	[ -n "$help" ] && die "... current speed ul dl"
 	transfer info | \
 		jq -r '[ .up_info_speed/1024/1024, .dl_info_speed/1024/1204 ] | @tsv'
 	;;
 
 top)
-	sort | uniq -c | sort -n # without -r it's actually a `bottom`
+	[ -n "$help" ] && die "... actually bottom"
+	sort | uniq -c $@ | sort -n # without -r it's actually a `bottom`
 	;;
 rawtop)
-	qbtlib.sh top | sed 's/ *[0-9]* //'
+	[ -n "$help" ] && die "... same as bove but without first column of numbers"
+	qbtlib.sh top $@ | sed 's/^ *[0-9]* //'
 	;;
 
 
 # systemd-run --user -E PATH --on-calendar=minutely -- bash qbtlib.sh influx
 influx)
+	[ -n "$help" ] && die "... store number of active torrents and connections, and ul dl speed in influxdb"
 	sdir=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
 	read token <$sdir/.token.influx
 
@@ -252,7 +333,7 @@ influx)
 
 	cat >/tmp/qbtlib.sh.influx.data << EOF
 	active_torrents,host=$QBT_HOST value=$(qbtlib.sh active | wc -l) $d
-	connections,host=$QBT_HOST value=$(qbtlib.sh active | cut -f1 | qbtlib.sh connections | wc -l) $d
+	connections,host=$QBT_HOST value=$(qbtlib.sh active1 | qbtlib.sh connections | wc -l) $d
 	dl_speed,host=$QBT_HOST value=$(transfer info | jq -r .dl_info_speed) $d
 	up_speed,host=$QBT_HOST value=$(transfer info | jq -r .up_info_speed) $d
 EOF
@@ -267,7 +348,8 @@ EOF
 
 # systemd-run --user -E PATH --on-calendar=minutely -- bash qbtlib.sh speedhistory ishotthesherrifff
 speedhistory)
-	# nb: infinitie memory fill
+	[ -n "$help" ] && die "... <EULA> apeend writes current date and speed in $shlog"
+	# nb: infinitie memory fill, must supply the password, like you read the code and understand what it does
 	if [ "$1" = "ishotthesherrifff" ] ; then
 		printf "%s\t%s\t%s\t%s\n" $QBT_HOST $(date +%s) $(qbtlib.sh speednow) | tee -a $shlog
 		exit
@@ -278,13 +360,16 @@ speedhistory)
 ;;
 
 ss)
+	[ -n "$help" ] && die "... cat $shlog"
 	cat $shlog | grep $QBT_HOST
 ;;
 
 # https://github.com/holman/spark
 sparkhistory)
-	which spark >/dev/null || exit -1
-	[ -s $shlog ] || echo 'no speed history file, run `qbtlib.sh speedhistory ishotthesherrifff` every N seconds'
+	[ -n "$help" ] && die "... ▇▅▃█▆"
+	set -e
+	which spark >/dev/null
+	[ -s $shlog ] || die 'no speed history file'
 
 	cc=$(( $(tput cols) - 32 ))
 	max_ul=$(cat $shlog | cut -f 3 | grep -v ^$ | sort | tail -n1)
@@ -300,8 +385,7 @@ sparkhistory)
 ;;
 
 *)
-	echo no such command
-	exit -1
+	die no such command
 	;;
 
 esac
