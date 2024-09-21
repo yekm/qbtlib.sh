@@ -15,9 +15,13 @@ die() {
 }
 
 helpall() {
+	argn=$(grep -P '^[\w\.]+\)' ${BASH_SOURCE[0]} | wc -l)
+	helpn=$(grep -w ' -n "$help" ] && die ' ${BASH_SOURCE[0]} | grep -v helpn | wc -l)
+	[ $argn -ne $helpn ] && echo incomplete help $helpn of $argn args && exit -1
+
 	# grep possible arguments from self
 	cat ${BASH_SOURCE[0]} | grep -P '^[\w\.]+\)' | tr -d ')' | \
-		parallel --tag -k qbtlib.sh help | column -t -s$'\t'
+		parallel --tag -k qbtlib.sh help | qbtlib.sh table
 	cat << EOF
 
 examples:
@@ -219,7 +223,7 @@ cpath)
 	hashes=$(paste -sd\|)
 	torrents info -G \
 		--data "hashes=$hashes" | \
-		jq -r '.[] | [ .category, .content_path ] | @tsv' | sort | column -t -s$'\t'
+		jq -r '.[] | [ .category, .content_path ] | @tsv' | sort | qbtlib.sh table
 	;;
 
 set_location)
@@ -295,11 +299,11 @@ monitor)
 		--data "filter=uploading" \
 		--data "filter=active" | \
 		jq -r '.[] | [ .category, .name, .upspeed/1024/1024, .progress*100 ] | @tsv' | \
-		column --table -o' ' -C name=category,width=1,strictwidth,trunc -C name=name,width=10,strictwidth -C name=up,width=1,strictwidth -C name=compl,width=1,strictwidth,trunc -T 0 -R 3,4 -m -s$'\t'
+		qbtlib.sh table -o' ' -C name=category,width=1,strictwidth,trunc -C name=name,width=10,strictwidth -C name=up,width=1,strictwidth -C name=compl,width=1,strictwidth,trunc -T 0 -R 3,4 -m
 	echo
 	transfer info | \
 		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024 ] | @tsv' | \
-		column --table -N status,dhtnodes,dl,up,total -s$'\t'
+		qbtlib.sh table -N status,dhtnodes,dl,up,total
 	;;
 monitor_dl)
 	[ -n "$help" ] && die '... list downloading torrent to sorted by `dlspeed`'
@@ -308,11 +312,11 @@ monitor_dl)
 		--data "filter=downloading" \
 		--data "filter=active" | \
 		jq -r '.[] | [ .category, .name, .dlspeed/1024/1024, .progress*100 ] | @tsv' | \
-		column --table -N category,name,dlspeed,completed -s$'\t'
+		qbtlib.sh table -N category,name,dlspeed,completed
 	echo
 	transfer info | \
 		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024, .dl_rate_limit/1024/1024, .up_rate_limit/1024/1024 ] | @tsv' | \
-		column --table -N status,dhtnodes,dl,up,total,dl_rl,up_rl, -s$'\t'
+		qbtlib.sh table -N status,dhtnodes,dl,up,total,dl_rl,up_rl
 	;;
 
 togglespeed)
@@ -353,22 +357,27 @@ pref)
 	[ -n "$help" ] && die "... app preferences"
 	app preferences \
 		| jq -r 'to_entries | map(select(.key != "scan_dirs"))[] | [ .key, .value ] | @tsv' \
-		| column -t -s$'\t' \
+		| qbtlib.sh table \
 		| less
 	;;
 
 top)
 	[ -n "$help" ] && die ".|. actually bottom"
-	sort | uniq -c $@ | sort -n # without -r it's actually a `bottom`
+	sort | uniq -c "$@" | sort -n # without -r it's actually a `bottom`
 	;;
 rawtop)
 	[ -n "$help" ] && die ".|. same as bove but without first column of numbers"
-	qbtlib.sh top $@ | sed 's/^ *[0-9]* //'
+	qbtlib.sh top "$@" | sed 's/^ *[0-9]* //'
 	;;
 
+table)
+	[ -n "$help" ] && die ".|. [] format tsv as table"
+	column -t -s$'\t' "$@"
+	;;
 js.table)
+	[ -n "$help" ] && die ".|. [] format json object key-values as table"
 	jq -r 'to_entries | map(select(.key != "null"))[] | [ .key, .value ] | @tsv' \
-		| column -t -s$'\t' \
+		| qbtlib.sh table "$@" \
 		| less
 	;;
 

@@ -162,6 +162,8 @@ pref.js             ... [arg1] set new preferences from file `arg1` if exists. d
 pref                ... app preferences
 top                 .|. actually bottom
 rawtop              .|. same as bove but without first column of numbers
+table               .|. [] format tsv as table
+js.table            .|. [] format json object key-values as table
 influx              ... store number of active torrents and connections, and ul dl speed in influxdb
 appendspeedhistory  ... apeend writes current date and speed in /tmp/qbtlib_speedhistory.log
 plotspeed           ... plot saved speed history with gnuplot
