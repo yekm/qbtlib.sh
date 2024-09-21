@@ -39,6 +39,16 @@ set category for last 40 added torrents
 move last 40 added torrents  
 `qbtlib.sh cache | tail -n40 | cut -f1 | qbtlib.sh set_location /new/location`
 
+display app preferences as table  
+`qbtlib.sh pref`
+
+edit preferences  
+```
+qbtlib.sh pref.js | tee /tmp/pref.json
+vim /tmp/pref.json
+qbtlib.sh pref.js /tmp/pref.json
+```
+
 files for last 5 added torrents  
 `qbtlib.sh cache | tail -n5 | cut -f1 | parallel -k qbtlib.sh tfiles | cut -f1- | column -t -s$'\t' -N file,progress,sizeGB`
 
@@ -112,6 +122,7 @@ active              ... list torrents sotred by `added_on` filtered by `active`
 active1             ... list only hashes sotred by `added_on` filtered by `active`
 active.js           ... list torrents sotred by `added_on` filtered by `active` in json
 tinfo.js            h|p torrent info in json
+tinfo               h|p torrent info
 resume              h|p resume torrents
 pause               h|p pause torrents
 recheck             h|p recheck torrents
@@ -136,7 +147,8 @@ togglespeed         ... toggle alternative speed limits
 gspeed              ... [ul] [dl] get/set global up/dl limits in MiB
 speednow            ... current speed ul dl
 sl                  ... speed limits mode
-preferences         ... app preferences
+pref.js             ... [arg1] set new preferences from file `arg1` if exists. display preferences in json.
+pref                ... app preferences
 top                 .|. actually bottom
 rawtop              .|. same as bove but without first column of numbers
 influx              ... store number of active torrents and connections, and ul dl speed in influxdb

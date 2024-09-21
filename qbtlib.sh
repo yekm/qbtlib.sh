@@ -165,6 +165,10 @@ tinfo.js)
 	torrents info -G \
 		--data "hashes=$hashes" | jq
 	;;
+tinfo)
+	[ -n "$help" ] && die 'h|p torrent info'
+	qbtlib.sh tinfo.js | jq -r '.[]' | qbtlib.sh js.table
+	;;
 resume)
 	[ -n "$help" ] && die 'h|p resume torrents'
 	hashes=$(paste -sd\|)
@@ -324,17 +328,19 @@ sl)
 	[ $(app preferences | jq -r .scheduler_enabled) = "true" ] && echo enabled || echo disabled
 	;;
 
-preferences)
+pref.js)
+	[ -n "$help" ] && die '... [arg1] set new preferences from file `arg1` if exists. display preferences in json.'
+	[ -s "$1" ] && app setPreferences --data-urlencode json@$1
+	app preferences | tee -a $t | jq
+	;;
+
+pref)
 	[ -n "$help" ] && die "... app preferences"
 	app preferences \
 		| jq -r 'to_entries | map(select(.key != "scan_dirs"))[] | [ .key, .value ] | @tsv' \
 		| column -t -s$'\t' \
 		| less
 	;;
-# todo:
-# `dumpPreferences` in json, then sed it and pipe to `setPreferences`
-# `setPreferences` use same filter as in `preferences` and `diff --word-diff old new`
-
 
 top)
 	[ -n "$help" ] && die ".|. actually bottom"
@@ -345,6 +351,11 @@ rawtop)
 	qbtlib.sh top $@ | sed 's/^ *[0-9]* //'
 	;;
 
+js.table)
+	jq -r 'to_entries | map(select(.key != "null"))[] | [ .key, .value ] | @tsv' \
+		| column -t -s$'\t' \
+		| less
+	;;
 
 # systemd-run --user -E PATH --on-calendar=minutely -- bash qbtlib.sh influx
 influx)
