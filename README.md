@@ -49,6 +49,8 @@ vim /tmp/pref.json
 qbtlib.sh pref.js /tmp/pref.json
 ```
 
+https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-application-preferences
+
 files for last 5 added torrents  
 `qbtlib.sh cache | tail -n5 | cut -f1 | parallel -k qbtlib.sh tfiles | cut -f1- | column -t -s$'\t' -N file,progress,sizeGB`
 
