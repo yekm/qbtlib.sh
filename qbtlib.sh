@@ -28,10 +28,11 @@ qbtlib.sh cache | grep some | cut -f1 | qbtlib.sh set_category newcategory
 qbtlib.sh cache | grep some | cut -f1 | qbtlib.sh set_location /new/location
 qbtlib.sh active1 | qbtlib.sh countries | qbtlib.sh top
 qbtlib.sh tcountries korea | cut -f1 | qbtlib.sh cpath
-qbtlib.sh cache1 | tail -n5 | parallel -k qbtlib.sh tfiles | cut -f1- | column -t -s$'\t' -N file,progress,sizeGB
+qbtlib.sh cache1 | tail -n5 | parallel -k qbtlib.sh tfiles | cut -f1- | column -t -s$'\t' -N id,file,progress,sizeGB
 watch 'qbtlib.sh monitor | tail -n50'
 qbtlib.sh active | cut -f1 | qbtlib.sh connections | qbtlib.sh top
 qbtlib.sh active1 | qbtlib.sh countries | qbtlib.sh rawtop | tail -n4 | parallel -k qbtlib.sh tcountries | parallel -k --tag --colsep=$'\t' 'echo {1} | qbtlib.sh cpath' | cut -f2- -d' ' | column -t -s$'\t'
+qbtlib.sh cache1 | tail -n1 | parallel 'qbtlib.sh tfiles {} | grep Season1 | cut -f1 | qbtlib.sh setfpriority {} 6'
 EOF
 }
 
@@ -191,14 +192,28 @@ slowcheck)
 	;;
 
 tfiles)
-	[ -n "$help" ] && die '... <hash> list files by one `hash` (name, progress, size in GiB)'
+	[ -n "$help" ] && die '... <hash> list files by one `hash` (index, name, priority, progress, size in GiB)'
 	torrents files -G --data "hash=$1" | \
-		jq -r '.[] | [ .name, .progress*100, .size/1024/1024/1024 ] | @tsv'
+		jq -r '.[] | [ .index, .name, .priority, .progress*100, .size/1024/1024/1024 ] | @tsv'
 	;;
 tfiles.js)
 	[ -n "$help" ] && die '... <hash> list files by one `hash` in json'
 	torrents files -G --data "hash=$1" | jq
 	;;
+
+pieces)
+	[ -n "$help" ] && die '... <hash> show torrent pieces'
+	torrents pieceStates -G --data "hash=$1" | tr -d ',[]' | tr 012 .v*
+	echo
+	;;
+setfpriority)
+	[ -n "$help" ] && die 'id|p <arg1> <arg2> set pieces priority to `arg2` (0,1,6,7) for torrent with hash `arg1`'
+	[ -z "$1" ] && die specify torrent hash
+	[ -z "$2" ] && die specity pieces priority
+	ids=$(paste -sd\|)
+	torrents filePrio -X POST --data "hash=$1" --data "priority=$2" --data "id=$ids"
+	;;
+
 cpath)
 	[ -n "$help" ] && die 'h|p list content path by hashes'
 	hashes=$(paste -sd\|)

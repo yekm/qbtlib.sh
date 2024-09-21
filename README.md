@@ -52,7 +52,11 @@ qbtlib.sh pref.js /tmp/pref.json
 https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-application-preferences
 
 files for last 5 added torrents  
-`qbtlib.sh cache | tail -n5 | cut -f1 | parallel -k qbtlib.sh tfiles | cut -f1- | column -t -s$'\t' -N file,progress,sizeGB`
+`qbtlib.sh cache | tail -n5 | cut -f1 | parallel -k qbtlib.sh tfiles | cut -f1- | column -t -s$'\t' -N id,file,prio,progress,sizeGB`
+
+set high priority for files containig word `Season1` for last torrent  
+`qbtlib.sh cache | tail -n1 | cut -f1 | parallel 'qbtlib.sh tfiles {} | grep Season1 | cut -f1 | qbtlib.sh setfpriority {} 6'`  
+0 - Do not download, 1 - Normal priority, 6 - High priority, 7 - Maximal priority
 
 top active categories  
 `qbtlib.sh active | cut -f2 | qbtlib.sh top`
@@ -85,6 +89,9 @@ $ qbtlib.sh sparkhistory
 ul  62.501/ 55.300 ▃▄▆▅▂▅▆▄▅▆▆█▅▅▁▅▇▆▅▄▃▂▃▇▇▅▃█▆▅▂▅▅▆▅▆▄▅▆▆▆▅ 15:27 
 dl   0.000/  0.000 ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ 15:27 
 ```
+
+show last one torrent pieces (`.` - Not downloaded yet, `v` - Now downloading, `*` - Already downloaded)  
+`qbtlib.sh cache1 | tail -n1 | parallel qbtlib.sh pieces`
 
 recheck N torrents at a time  
 `qbtlib.sh cache | cut -f1 | qbtlib.sh slowcheck N`
@@ -129,8 +136,10 @@ resume              h|p resume torrents
 pause               h|p pause torrents
 recheck             h|p recheck torrents
 slowcheck           h|. [arg1=2] recheck torrents `arg1` at a time, default 2
-tfiles              ... <hash> list files by one `hash` (name, progress, size in GiB)
+tfiles              ... <hash> list files by one `hash` (index, name, priority, progress, size in GiB)
 tfiles.js           ... <hash> list files by one `hash` in json
+pieces              ... <hash> show torrent pieces
+setfpriority        id|p <arg1> <arg2> set pieces priority to `arg2` (0,1,6,7) for torrent with hash `arg1`
 cpath               h|p list content path by hashes
 set_location        h|p <arg1> moves torrents to a new location `arg1`
 set_category        h|p <arg1> set cetegory to `<arg1>` on torrents
@@ -167,9 +176,10 @@ qbtlib.sh cache | grep some | cut -f1 | qbtlib.sh set_category newcategory
 qbtlib.sh cache | grep some | cut -f1 | qbtlib.sh set_location /new/location
 qbtlib.sh active1 | qbtlib.sh countries | qbtlib.sh top
 qbtlib.sh tcountries korea | cut -f1 | qbtlib.sh cpath
-qbtlib.sh cache1 | tail -n5 | parallel -k qbtlib.sh tfiles | cut -f1- | column -t -s$'\t' -N file,progress,sizeGB
+qbtlib.sh cache1 | tail -n5 | parallel -k qbtlib.sh tfiles | cut -f1- | column -t -s$'\t' -N id,file,progress,sizeGB
 watch 'qbtlib.sh monitor | tail -n50'
 qbtlib.sh active | cut -f1 | qbtlib.sh connections | qbtlib.sh top
 qbtlib.sh active1 | qbtlib.sh countries | qbtlib.sh rawtop | tail -n4 | parallel -k qbtlib.sh tcountries | parallel -k --tag --colsep=$'\t' 'echo {1} | qbtlib.sh cpath' | cut -f2- -d' ' | column -t -s$'\t'
+qbtlib.sh cache1 | tail -n1 | parallel 'qbtlib.sh tfiles {} | grep Season1 | cut -f1 | qbtlib.sh setfpriority {} 6'
 
 ```
