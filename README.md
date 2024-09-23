@@ -126,6 +126,7 @@ sys     0m53.063s
 $ qbtlib.sh help
 cache               ... print cached `qbtlib.sh last`
 cache1              ... print only hashes from cached `qbtlib.sh last`
+cache.js            ... print cached `qbtlib.sh last` in json
 last                ... list torrents sotred by `added_on`
 active              ... list torrents sotred by `added_on` filtered by `active`
 active1             ... list only hashes sotred by `added_on` filtered by `active`

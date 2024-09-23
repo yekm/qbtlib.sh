@@ -133,18 +133,25 @@ fi
 case $cmd in
 cache)
 	[ -n "$help" ] && die '... print cached `qbtlib.sh last`'
-	cat $(ls -1t /tmp/qbtlib.sh.cache_* | head -n1) | zstdmt -d
+	cat $(ls -1t /tmp/qbtlib.sh.cache_* | head -n1) \
+		| zstdmt -d \
+		| jq -r '.[] | [ .hash, .category, .content_path, .progress*100 ] | @tsv'
 	# todo: tmp cleanup
 	;;
 cache1)
 	[ -n "$help" ] && die '... print only hashes from cached `qbtlib.sh last`'
 	qbtlib.sh cache | cut -f1
 	;;
+cache.js)
+	[ -n "$help" ] && die '... print cached `qbtlib.sh last` in json'
+	cat $(ls -1t /tmp/qbtlib.sh.cache_* | head -n1) \
+		| zstdmt -d
+	;;
 last)
 	[ -n "$help" ] && die '... list torrents sotred by `added_on`'
 	torrents info -G --data "sort=added_on" | \
-		jq -r '.[] | [ .hash, .category, .content_path, .progress*100 ] | @tsv' | \
-		zstdmt --adapt | tee $tmp | zstdmt -d
+		zstdmt --adapt | tee $tmp | zstdmt -d | \
+		jq -r '.[] | [ .hash, .category, .content_path, .progress*100 ] | @tsv'
 	;;
 active)
 	[ -n "$help" ] && die '... list torrents sotred by `added_on` filtered by `active`'
