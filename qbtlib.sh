@@ -301,12 +301,19 @@ tcountries)
 # looks ugly
 monitor)
 	[ -n "$help" ] && die '... list uploading torrent to sorted by `upspeed`'
+	cc=$(( $(tput cols) - 32 ))
 	torrents info -G \
 		--data "sort=upspeed" \
 		--data "filter=uploading" \
-		--data "filter=active" | \
-		jq -r '.[] | [ .category, .name, .upspeed/1024/1024, .progress*100 ] | @tsv' | \
-		qbtlib.sh table -o' ' -C name=category,width=1,strictwidth,trunc -C name=name,width=10,strictwidth -C name=up,width=1,strictwidth -C name=compl,width=1,strictwidth,trunc -T 0 -R 3,4 -m
+		--data "filter=active" \
+		| jq -r '.[] | [ .category, .name, .upspeed/1024/1024, .progress*100 ] | @tsv' \
+		| awk 'BEGIN { FS=OFS="\t" } {
+			$1 = substr($1,0,18);
+			$2 = substr($2,0,'$cc');
+			$3 = substr($3,0,5);
+			$4 = substr($4,0,4);
+			print $1"\t"$2"\t"$3"\t"$4; }' \
+		| qbtlib.sh table -o' ' -N cat,name,up,done -R 3,4
 	echo
 	transfer info | \
 		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024 ] | @tsv' | \
@@ -317,9 +324,15 @@ monitor_dl)
 	torrents info -G \
 		--data "sort=dlspeed" \
 		--data "filter=downloading" \
-		--data "filter=active" | \
-		jq -r '.[] | [ .category, .name, .dlspeed/1024/1024, .progress*100 ] | @tsv' | \
-		qbtlib.sh table -N category,name,dlspeed,completed
+		--data "filter=active" \
+		| jq -r '.[] | [ .category, .name, .dlspeed/1024/1024, .progress*100 ] | @tsv' \
+		| awk 'BEGIN { FS=OFS="\t" } {
+			$1 = substr($1,0,18);
+			$2 = substr($2,0,'$cc');
+			$3 = substr($3,0,5);
+			$4 = substr($4,0,4);
+			print $1"\t"$2"\t"$3"\t"$4; }' \
+		| qbtlib.sh table -o' ' -N cat,name,up,done -R 3,4
 	echo
 	transfer info | \
 		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024, .dl_rate_limit/1024/1024, .up_rate_limit/1024/1024 ] | @tsv' | \
@@ -334,10 +347,10 @@ togglespeed)
 
 gspeed)
 	[ -n "$help" ] && die '... [ul] [dl] get/set global up/dl limits in MiB'
-	[ $# -ne 0 ] && echo "up limit before $(transfer downloadLimit) down limit $(transfer uploadLimit)"
+	[ $# -ne 0 ] && echo "up limit $(transfer downloadLimit) down limit $(transfer uploadLimit) before"
 	[ -n "$1" ] && transfer setUploadLimit --data limit=$(( $1 * 1024 * 1024 ))
 	[ -n "$2" ] && transfer setDownloadLimit --data limit=$(( $2 * 1024 * 1024 ))
-	echo "up limit now $(transfer downloadLimit) down limit $(transfer uploadLimit)"
+	echo "up limit $(transfer downloadLimit) down limit $(transfer uploadLimit)"
 	;;
 
 speednow)
@@ -366,6 +379,35 @@ pref)
 		| jq -r 'to_entries | map(select(.key != "scan_dirs"))[] | [ .key, .value ] | @tsv' \
 		| qbtlib.sh table \
 		| less
+	;;
+
+stat)
+	[ -n "$help" ] && die "... display overall statistics"
+	qbtlib.sh cache.js | jq -r '.[] | .state' | qbtlib.sh top
+	qbtlib.sh cache.js | jq -r '.[] | .category' | qbtlib.sh top
+	transfer info | \
+		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024, .dl_rate_limit/1024/1024, .up_rate_limit/1024/1024 ] | @tsv' | \
+		qbtlib.sh table -N "status,dhtnodes,dl MiB/s,up MiB/s,total MiB/s,ratelimit dl MiB/s,ratelimit up MiB/s"
+	exit
+	# todo:
+	qbtlib.sh cache.js | jq -r '.[] | .ratio' \
+		| sort \
+		| gnuplot -p -e \
+			"set terminal dumb size 120, 30; \
+			binwidth=10; \
+			set boxwidth binwidth; \
+			bin(x,width)=width*floor(x/width); \
+			set logscale y; \
+			plot '-' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes"
+	qbtlib.sh cache.js | jq -r '.[] | .size' \
+		| sort \
+		| gnuplot -p -e \
+			"set terminal dumb size 120, 30; \
+			binwidth=1000000; \
+			set boxwidth binwidth; \
+			bin(x,width)=width*floor(x/width); \
+			set logscale y; \
+			plot '-' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes"
 	;;
 
 top)

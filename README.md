@@ -161,6 +161,7 @@ speednow            ... current speed ul dl
 sl                  ... speed limits mode
 pref.js             ... [arg1] set new preferences from file `arg1` if exists. display preferences in json.
 pref                ... app preferences
+stat                ... display overall statistics
 top                 .|. actually bottom
 rawtop              .|. same as bove but without first column of numbers
 table               .|. [] format tsv as table
