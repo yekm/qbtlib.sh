@@ -96,6 +96,12 @@ show last one torrent pieces (`.` - Not downloaded yet, `v` - Now downloading, `
 recheck N torrents at a time  
 `qbtlib.sh cache | cut -f1 | qbtlib.sh slowcheck N`
 
+add torrents to qbt  
+`parallel qbtlib.sh add ::: *.torrent`
+
+delete torrents with their files  
+`qbtlib.sh last | grep some | cut -f1 | qbtlib.sh delete deletefilestoo`
+
 qbt docs: https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#torrent-management
 
 ## fun
