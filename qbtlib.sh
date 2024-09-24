@@ -434,7 +434,7 @@ add_rtrkr)
 	;;
 
 delete)
-	[ -n "$help" ] && die "h|p [`arg1`] delete torrents"
+	[ -n "$help" ] && die 'h|p [`arg1`] delete torrents'
 	opt="--data deleteFiles=false"
 	[ "$1" = "deletefilestoo" ] && opt="--data deleteFiles=true"
 	hashes=$(paste -sd\|)
