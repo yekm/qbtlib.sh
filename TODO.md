@@ -17,7 +17,7 @@ cat WebUI-API-\(qBittorrent-4.1\).md \
 - [x] Get application preferences `preferences`
 - [x] Set application preferences `setPreferences`
 - [ ] Get default save path `defaultSavePath`
-- [ ] Get log `main`
+- [x] Get log `main`
 - [ ] Get peer log `peers`
 - [ ] Get main data `maindata`
 - [x] Get torrent peers data `torrentPeers`
@@ -38,10 +38,10 @@ cat WebUI-API-\(qBittorrent-4.1\).md \
 - [ ] Get torrent pieces' hashes `pieceHashes`
 - [x] Pause torrents `pause`
 - [x] Resume torrents `resume`
-- [ ] Delete torrents `delete`
+- [x] Delete torrents `delete`
 - [x] Recheck torrents `recheck`
 - [ ] Reannounce torrents `reannounce`
-- [ ] Add new torrent
+- [x] Add new torrent
 - [ ] Add trackers to torrent
 - [ ] Edit trackers `editTracker`
 - [ ] Remove trackers `removeTrackers`

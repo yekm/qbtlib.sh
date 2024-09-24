@@ -162,6 +162,10 @@ sl                  ... speed limits mode
 pref.js             ... [arg1] set new preferences from file `arg1` if exists. display preferences in json.
 pref                ... app preferences
 stat                ... display overall statistics
+log                 ... display log
+add                 ... <filename> [args] add torrent. optional args -F savepath= -F category= -F tags= -F paused=true
+add_rtrkr           ... <arg1> [args] download torrent with id `arg1` from rutracker and add it to qbt
+delete              h|p [] delete torrents
 top                 .|. actually bottom
 rawtop              .|. same as bove but without first column of numbers
 table               .|. [] format tsv as table

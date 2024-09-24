@@ -43,6 +43,7 @@ EOF
 _apicall() {
 	s=--silent
 	#s=--verbose
+	#s=--trace-ascii /tmp/curl.trace
 	#set -vx
 	curl -S $s \
 		http://$QBT_HOST/api/v2/$1/$2 \
@@ -410,6 +411,35 @@ stat)
 			plot '-' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes"
 	;;
 
+log)
+	[ -n "$help" ] && die "... display log"
+	_apicall log main \
+		| jq -r '.[] | [.id, .type, .timestamp, .message] | @tsv' \
+		| qbtlib.sh table
+	;;
+add)
+	[ -n "$help" ] && die "... <filename> [args] add torrent. optional args -F savepath= -F category= -F tags= -F paused=true"
+	[ -s "$1" ] || die 'specify torrent filename'
+	torrents add -F "torrents=@$1;type=application/x-bittorrent" \
+		${@:2}
+	echo
+	# -F savepath= -F category= -F tags= -F paused=true
+	;;
+add_rtrkr)
+	[ -n "$help" ] && die '... <arg1> [args] download torrent with id `arg1` from rutracker and add it to qbt'
+	id=$1
+	tcache=/tmp/qbtlib.cache.$id.torrent
+	[ -s $tcache ] || rtrkr_curl.sh https://rutracker.org/forum/dl.php?t=$id >$tcache
+	qbtlib.sh add $tcache ${@:2}
+	;;
+
+delete)
+	[ -n "$help" ] && die "h|p [`arg1`] delete torrents"
+	opt="--data deleteFiles=false"
+	[ "$1" = "deletefilestoo" ] && opt="--data deleteFiles=true"
+	hashes=$(paste -sd\|)
+	torrents delete -X POST $opt --data "hashes=$hashes"
+	;;
 top)
 	[ -n "$help" ] && die ".|. actually bottom"
 	sort | uniq -c "$@" | sort -n # without -r it's actually a `bottom`
