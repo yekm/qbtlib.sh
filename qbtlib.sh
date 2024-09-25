@@ -205,11 +205,14 @@ slowcheck)
 
 tfiles)
 	[ -n "$help" ] && die '... <hash> list files by one `hash` (index, name, priority, progress, size in GiB)'
-	torrents files -G --data "hash=$1" | \
-		jq -r '.[] | [ .index, .name, .priority, .progress*100, .size/1024/1024/1024 ] | @tsv'
+	[ -z "$1" ] && die 'specify hash as first argument'
+	torrents files -G --data "hash=$1" \
+		| jq -r '.[] | [ .index, .name, .priority, .progress*100, .size/1024/1024/1024 ] | @tsv' \
+		| sort -k2
 	;;
 tfiles.js)
 	[ -n "$help" ] && die '... <hash> list files by one `hash` in json'
+	[ -z "$1" ] && die 'specify hash as first argument'
 	torrents files -G --data "hash=$1" | jq
 	;;
 
