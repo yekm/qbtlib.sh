@@ -77,3 +77,19 @@ $ cat rutracker-*.xml | grep 'del/>' | wc -l
 
 sometimes tracker sends `<center><br><br>Error: attachment data not found</center>`
 instead of torrent file. qbt expectably fails `Error: 'filename.torrent' is not a valid torrent file.`
+
+
+# keepers things
+
+```
+# сматри балет
+$ grep 'Музыкальное видео' forumstat.txt | grep -i -e балет | sed 's/ *$//'  | sort -k2 -n | less
+
+$ grep 'Музыкальное видео' forumstat.txt | grep -i -e балет | sed 's/ *$//'  | sort -k2 -n | cut -f1 -d' ' | tr -d "'" | parallel rtrckr.sh find | cut -f1 -d' ' | paste -sd+ | bc -l
+7555.9980759
+# ^^^ 7.5 Tb
+
+# храни балет
+$ grep 'Музыкальное видео' forumstat.txt | grep -i -e балет | sed 's/ *$//'  | sort -k2 -n | cut -f1 -d' ' | tr -d "'" | parallel rtrckr.sh ifind | parallel --tag -j2 'rtrckr.sh download {} -F savepath=/mnt/all/music_video -F category=music/video -F tags=keep -F paused=true'
+
+```

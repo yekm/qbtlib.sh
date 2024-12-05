@@ -17,7 +17,7 @@ cat $(ls -t /mnt/huanan/all/rtrkr/rutracker-*.xml.xz | tail -n1) \
 $ time cat *.tsv \
     | cut -f6,7 \
     | sort -u -k2 \
-    | hwloc-bind core:all -- parallel --colsep=$'\t' 'b=$(cat *.tsv | grep {1} | cut -f3 | paste -sd+ | bc); pretty=$(echo $b bytes | qalc --set "color 0" | grep B); printf "%s\t%s\n" "$pretty" {2}' \
+    | hwloc-bind core:all -- parallel --colsep=$'\t' 'b=$(cat *.tsv | grep {1} | cut -f3 | paste -sd+ | bc); pretty=$(echo $b bytes | qalc --set "color 0" | grep B); printf "%s\t%s\t%s\n" {1} "$pretty" {2}' \
     | qbtlib.sh table \
     | sort -n \
     > forumstat.txt

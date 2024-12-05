@@ -129,6 +129,13 @@ sys     0m53.063s
 ## help
 
 ```
+
+## todo
+
+* dynamic disk throttling via maximum number of connections  
+  a lot of fast peers present during the day,
+  a lot of connections puts unnecessary pressure to disks.
+  PID controller will do fine here.
 $ qbtlib.sh help
 cache               ... print cached `qbtlib.sh last`
 cache1              ... print only hashes from cached `qbtlib.sh last`
@@ -143,7 +150,7 @@ resume              h|p resume torrents
 pause               h|p pause torrents
 recheck             h|p recheck torrents
 slowcheck           h|. [arg1=2] recheck torrents `arg1` at a time, default 2
-tfiles              ... <hash> list files by one `hash` (index, name, priority, progress, size in GiB)
+tfiles              ... <hash> list files by one `hash` (name, priority, progress, size in GiB, name)
 tfiles.js           ... <hash> list files by one `hash` in json
 pieces              ... <hash> show torrent pieces
 setfpriority        id|p <arg1> <arg2> set pieces priority to `arg2` (0,1,6,7) for torrent with hash `arg1`
@@ -152,6 +159,7 @@ set_location        h|p <arg1> moves torrents to a new location `arg1`
 set_category        h|p <arg1> set cetegory to `<arg1>` on torrents
 qtop                h|p move torrents on top of the queue
 qbottom             h|p move torrents on bottom of the queue
+peers               h|. list peers on a hash sorted by country, like in webui
 peerhashes          ip| list hashes on a peer
 peerpaths           ip| list content paths by peer
 connections         h|. list peers on a hash
@@ -162,16 +170,16 @@ tcountries          ... <country> hashes by `country`. (active list icountries h
 monitor             ... list uploading torrent to sorted by `upspeed`
 monitor_dl          ... list downloading torrent to sorted by `dlspeed`
 togglespeed         ... toggle alternative speed limits
-gspeed              ... [ul] [dl] get/set global up/dl limits in MiB
+gspeed              ... [ul] [dl] get/set global up/dl limits in MiB/s
 speednow            ... current speed ul dl
 sl                  ... speed limits mode
 pref.js             ... [arg1] set new preferences from file `arg1` if exists. display preferences in json.
+pref_sed            ... <arg1> set new preferences filtered by sed arg1
 pref                ... app preferences
 stat                ... display overall statistics
 log                 ... display log
 add                 ... <filename> [args] add torrent. optional args -F savepath= -F category= -F tags= -F paused=true
-add_rtrkr           ... <arg1> [args] download torrent with id `arg1` from rutracker and add it to qbt
-delete              h|p [`arg1`] delete torrents
+delete              h|p [`arg1`] delete torrents, arg1 can be "deletefilestoo"
 top                 .|. actually bottom
 rawtop              .|. same as bove but without first column of numbers
 table               .|. [] format tsv as table
@@ -183,6 +191,7 @@ ss                  ... cat /tmp/qbtlib_speedhistory.log
 sparkhistory        ... ▇▅▃█▆
 
 examples:
+qbtlib.sh pref_sed 's/"max_connec": .*/"max_connec": 1024,/'
 qbtlib.sh cache | grep some | cut -f1 | qbtlib.sh resume
 qbtlib.sh cache | grep '100$' | less
 qbtlib.sh cache | grep -v '100$' | less

@@ -25,6 +25,7 @@ helpall() {
 	cat << EOF
 
 examples:
+qbtlib.sh pref_sed 's/"max_connec": .*/"max_connec": 1024,/'
 qbtlib.sh cache | grep some | cut -f1 | qbtlib.sh resume
 qbtlib.sh cache | grep '100$' | less
 qbtlib.sh cache | grep -v '100$' | less
@@ -204,11 +205,12 @@ slowcheck)
 	;;
 
 tfiles)
-	[ -n "$help" ] && die '... <hash> list files by one `hash` (index, name, priority, progress, size in GiB)'
+	[ -n "$help" ] && die '... <hash> list files by one `hash` (name, priority, progress, size in GiB, name)'
 	[ -z "$1" ] && die 'specify hash as first argument'
 	torrents files -G --data "hash=$1" \
-		| jq -r '.[] | [ .index, .name, .priority, .progress*100, .size/1024/1024/1024 ] | @tsv' \
-		| sort -k2
+		| jq -r '.[] | [ .index, .priority, .progress*100, .size/1024/1024/1024, .name ] | @tsv' \
+		| sort -k2 \
+		| parallel --colsep=$'\t' 'printf "%d\t%s\t%d\t%.2f\t%.2f\t %s\n" {1} $(spark 100 0 {3} | cut -c5-) {2} {3} {4} {5}'
 	;;
 tfiles.js)
 	[ -n "$help" ] && die '... <hash> list files by one `hash` in json'
@@ -261,6 +263,13 @@ qbottom)
 	torrents bottomPrio -X POST --data "hashes=$hashes"
 	;;
 
+peers)
+	[ -n "$help" ] && die 'h|. list peers on a hash sorted by country, like in webui'
+	parallel --tag 'sync torrentPeers -G --data "hash={}" \
+		| jq -r ".peers | to_entries | .[].value | [ .country_code, .ip, .port, .connection, .flags, .client, .progress, .dl_speed, .downloada, .up_speed, .uploaded, .relevance, .files ] | @tsv"' \
+		| sort \
+		| qbtlib.sh table
+	;;
 
 peerhashes)
 	[ -n "$help" ] && die 'ip| list hashes on a peer'
@@ -325,6 +334,7 @@ monitor)
 	;;
 monitor_dl)
 	[ -n "$help" ] && die '... list downloading torrent to sorted by `dlspeed`'
+	cc=$(( $(tput cols) - 32 ))
 	torrents info -G \
 		--data "sort=dlspeed" \
 		--data "filter=downloading" \
@@ -350,11 +360,11 @@ togglespeed)
 	;;
 
 gspeed)
-	[ -n "$help" ] && die '... [ul] [dl] get/set global up/dl limits in MiB'
-	[ $# -ne 0 ] && echo "up limit $(transfer downloadLimit) down limit $(transfer uploadLimit) before"
+	[ -n "$help" ] && die '... [ul] [dl] get/set global up/dl limits in MiB/s'
+	[ $# -ne 0 ] && echo "down limit $(transfer downloadLimit), up limit $(transfer uploadLimit) before"
 	[ -n "$1" ] && transfer setUploadLimit --data limit=$(( $1 * 1024 * 1024 ))
 	[ -n "$2" ] && transfer setDownloadLimit --data limit=$(( $2 * 1024 * 1024 ))
-	echo "up limit $(transfer downloadLimit) down limit $(transfer uploadLimit)"
+	echo "down limit $(transfer downloadLimit) up limit $(transfer uploadLimit)"
 	;;
 
 speednow)
@@ -374,6 +384,15 @@ sl)
 pref.js)
 	[ -n "$help" ] && die '... [arg1] set new preferences from file `arg1` if exists. display preferences in json.'
 	[ -s "$1" ] && app setPreferences --data-urlencode json@$1
+	app preferences | tee -a $t | jq
+	;;
+
+pref_sed)
+	[ -n "$help" ] && die '... <arg1> set new preferences filtered by sed arg1'
+	set -e
+	#qbtlib.sh pref.js | sed "$1" | qbtlib.sh pref.js /dev/stdin
+	qbtlib.sh pref.js | sed "$1" >/tmp/qbtlib_pref.sed.tmp
+	qbtlib.sh pref.js /tmp/qbtlib_pref.sed.tmp
 	app preferences | tee -a $t | jq
 	;;
 
@@ -428,16 +447,8 @@ add)
 	echo
 	# -F savepath= -F category= -F tags= -F paused=true
 	;;
-add_rtrkr)
-	[ -n "$help" ] && die '... <arg1> [args] download torrent with id `arg1` from rutracker and add it to qbt'
-	id=$1
-	tcache=/tmp/qbtlib.cache.$id.torrent
-	[ -s $tcache ] || rtrkr_curl.sh https://rutracker.org/forum/dl.php?t=$id >$tcache
-	qbtlib.sh add $tcache ${@:2}
-	;;
-
 delete)
-	[ -n "$help" ] && die 'h|p [`arg1`] delete torrents'
+	[ -n "$help" ] && die 'h|p [`arg1`] delete torrents, arg1 can be "deletefilestoo"'
 	opt="--data deleteFiles=false"
 	[ "$1" = "deletefilestoo" ] && opt="--data deleteFiles=true"
 	hashes=$(paste -sd\|)
@@ -477,6 +488,7 @@ influx)
 	connections,host=$QBT_HOST value=$(qbtlib.sh active1 | qbtlib.sh connections | wc -l) $d
 	dl_speed,host=$QBT_HOST value=$(transfer info | jq -r .dl_info_speed) $d
 	up_speed,host=$QBT_HOST value=$(transfer info | jq -r .up_info_speed) $d
+	max_connec,host=$QBT_HOST value=$(qbtlib.sh pref.js | jq -r .max_connec) $d
 EOF
 
 	curl -S -s \
