@@ -137,7 +137,7 @@ cache)
 	[ -n "$help" ] && die '... print cached `qbtlib.sh last`'
 	cat $(ls -1t /tmp/qbtlib.sh.cache_* | head -n1) \
 		| zstdmt -d \
-		| jq -r '.[] | [ .hash, .category, .content_path, .progress*100 ] | @tsv'
+		| jq -r '.[] | [ .hash, .category, .content_path, .progress*100, .ratio ] | @tsv'
 	# todo: tmp cleanup
 	;;
 cache1)
@@ -153,7 +153,14 @@ last)
 	[ -n "$help" ] && die '... list torrents sotred by `added_on`'
 	torrents info -G --data "sort=added_on" | \
 		zstdmt --adapt | tee $tmp | zstdmt -d | \
-		jq -r '.[] | [ .hash, .category, .content_path, .progress*100 ] | @tsv'
+		jq -r '.[] | [ .hash, .category, .content_path, .progress*100, .ratio ] | @tsv'
+	;;
+last.r)
+	[ -n "$help" ] && die '... list torrents sotred by `ratio`'
+	torrents info -G --data "sort=ratio" | \
+		zstdmt --adapt | tee $tmp | zstdmt -d | \
+		jq -r '.[] | [ .hash, .category, .content_path, .progress*100, .ratio ] | @tsv' | \
+		cut -f2-
 	;;
 active)
 	[ -n "$help" ] && die '... list torrents sotred by `added_on` filtered by `active`'
