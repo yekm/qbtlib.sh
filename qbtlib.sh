@@ -270,6 +270,13 @@ qbottom)
 	torrents bottomPrio -X POST --data "hashes=$hashes"
 	;;
 
+trackers)
+	[ -n "$help" ] && die 'h|. list trackers'
+	parallel 'torrents trackers --data "hash={}"' \
+		| jq -r '.[] | [ .tier, .url, .status, .num_peers, .num_seeds, .num_downloaded, .msg ] | @tsv ' \
+		| qbtlib.sh table
+	;;
+
 peers)
 	[ -n "$help" ] && die 'h|. list peers on a hash sorted by country, like in webui'
 	parallel --tag 'sync torrentPeers -G --data "hash={}" \

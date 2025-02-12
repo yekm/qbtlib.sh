@@ -160,6 +160,7 @@ set_location        h|p <arg1> moves torrents to a new location `arg1`
 set_category        h|p <arg1> set cetegory to `<arg1>` on torrents
 qtop                h|p move torrents on top of the queue
 qbottom             h|p move torrents on bottom of the queue
+trackers            h|. list trackers
 peers               h|. list peers on a hash sorted by country, like in webui
 peerhashes          ip| list hashes on a peer
 peerpaths           ip| list content paths by peer
