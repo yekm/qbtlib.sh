@@ -214,10 +214,10 @@ slowcheck)
 tfiles)
 	[ -n "$help" ] && die '... <hash> list files by one `hash` (name, priority, progress, size in GiB, name)'
 	[ -z "$1" ] && die 'specify hash as first argument'
+
 	torrents files -G --data "hash=$1" \
 		| jq -r '.[] | [ .index, .priority, .progress*100, .size/1024/1024/1024, .name ] | @tsv' \
-		| sort -k2 \
-		| parallel --colsep=$'\t' 'printf "%d\t%s\t%d\t%.2f\t%.2f\t %s\n" {1} $(spark 100 0 {3} | cut -c5-) {2} {3} {4} {5}'
+		| sort -k2
 	;;
 tfiles.js)
 	[ -n "$help" ] && die '... <hash> list files by one `hash` in json'
