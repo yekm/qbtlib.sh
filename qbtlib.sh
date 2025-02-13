@@ -137,7 +137,7 @@ cache)
 	[ -n "$help" ] && die '... print cached `qbtlib.sh last`'
 	cat $(ls -1t /tmp/qbtlib.sh.cache_* | head -n1) \
 		| zstdmt -d \
-		| jq -r '.[] | [ .hash, .category, .content_path, .progress*100, .ratio ] | @tsv'
+		| jq -r '.[] | [ .hash, .category, .content_path, .progress*100 ] | @tsv'
 	# todo: tmp cleanup
 	;;
 cache1)
@@ -152,8 +152,8 @@ cache.js)
 last)
 	[ -n "$help" ] && die '... list torrents sotred by `added_on`'
 	torrents info -G --data "sort=added_on" | \
-		zstdmt --adapt | tee $tmp | zstdmt -d | \
-		jq -r '.[] | [ .hash, .category, .content_path, .progress*100, .ratio ] | @tsv'
+		zstdmt --adapt > $tmp
+	qbtlib.sh cache
 	;;
 last.r)
 	[ -n "$help" ] && die '... list torrents sotred by `ratio`'
