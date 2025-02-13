@@ -104,6 +104,46 @@ delete torrents with their files
 
 qbt docs: https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#torrent-management
 
+# rtrckr.sh
+
+Tool for interfacing with rutracker.org. Requires `rtrkr_curl.sh` to be available
+in PATH. `rtrkr_curl.sh` can be obtained in DevTools network window by seleceting
+`Copy as CURL` in the relevant menu item. After creating it must be edited to
+accept url as first parameter (also you can specify a `--proxy` parameter there).
+See a bottom of `rtrckr.sh` for an example.
+
+Search function relies on plain text database in TSV format. This database can be
+obtained by converting xml dump of all torrents (5591249 topic id) by running
+`rtrckr.sh xml2tsv`
+
+`rtrckr.sh grep` is the main command which finds words in tsv file. Equivalent to
+`cat $tsv | grep arg1 | grep arg2 | grep arg3 ...` (args is actually in reverse
+order but whatever)
+
+`rtrckr.sh find` same as grep but output is somewhat filtered. Sorted by size,
+outputs only certain columns (kinda unstable, but id should always be the first column)
+
+`rtrckr.sh download` download torrent file into /tmp and add it to a qbt via
+`qbtlib.sh add`
+
+`rtrckr.sh frompage` lists all torrent ids from a certain webpage. Useful to
+download a list of torrents from some forum topic.
+
+`rtrckr.sh xml2tsv` converts xml dump to a tsv database
+
+`rtrckr.sh curl` invokes rtrkr_curl.sh
+
+## usage
+
+find all torrents with `ubuntu` in title or forum name  
+`rtrckr.sh find ubuntu`
+
+download all relevant torrents to a certain directory  
+`rtrckr.sh find ubuntu bdremux | cut -f1 | parallel -j4 'rtrckr.sh download {} -F savepath=/mnt/all/film -F category=film -F tags=rtrckr -F paused=false'`
+
+download all torrents mentioned on certain page  
+`rtrckr.sh frompage https://rutracker.org/forum/viewtopic.php?t=6012098 | parallel -j4 'rtrckr.sh download {} -F savepath=/mnt/all/mult/FilmScan -F category=mult/fscan -F paused=false'`
+
 ## fun
 
 Total created processes:
