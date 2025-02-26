@@ -468,6 +468,9 @@ delete)
 	hashes=$(paste -sd\|)
 	torrents delete -X POST $opt --data "hashes=$hashes"
 	;;
+
+# utilities
+
 top)
 	[ -n "$help" ] && die ".|. actually bottom"
 	sort | uniq -c "$@" | sort -n # without -r it's actually a `bottom`
@@ -561,6 +564,14 @@ sparkhistory)
 	then=$(date +%R -d @$(tail -n$cc $shlog | head -n1 | cut -f 2))
 	printf "ul %7.3f/%7.3f %s %s %s\n" $max_ul $min_ul "$(tail -n $cc $shlog | cut -f 3 | tac | spark)" "$then"
 	printf "dl %7.3f/%7.3f %s %s %s\n" $max_dl $min_dl "$(tail -n $cc $shlog | cut -f 4 | tac | spark)" "$then"
+;;
+
+sum)
+	[ -n "$help" ] && die ".|. add up all numbers"
+	paste -sd+ \
+		| parallel 'python -c "print({})"'
+	# or with bc, which cant into scientific notation:
+	# grep -v e | paste -sd+ | bc -l
 ;;
 
 *)

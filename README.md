@@ -231,6 +231,7 @@ appendspeedhistory  ... apeend writes current date and speed in /tmp/qbtlib_spee
 plotspeed           ... plot saved speed history with gnuplot
 ss                  ... cat /tmp/qbtlib_speedhistory.log
 sparkhistory        ... ▇▅▃█▆
+sum                 .|. add up all numbers
 
 examples:
 qbtlib.sh pref_sed 's/"max_connec": .*/"max_connec": 1024,/'
