@@ -57,7 +57,7 @@ grep)
 find)
 	[ -n "$help" ] && die 'find torrents, columns: size in GiB, name, forum'
 	#cat $tsv | grep $@ \
-	rtrckr.sh grep $@ \
+	rtrckr.sh grep "$@" \
 		| cut -f1,3,4,6,7 \
 		| sort -k2 -n \
 		| awk -F $'\t' ' BEGIN {OFS = FS} {$2 = $2/1024/1024/1024; print}' # \
