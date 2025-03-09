@@ -456,8 +456,11 @@ log)
 add)
 	[ -n "$help" ] && die "... <filename> [args] add torrent. optional args -F savepath= -F category= -F tags= -F paused=true"
 	[ -s "$1" ] || die 'specify torrent filename'
-	torrents add -F "torrents=@$1;type=application/x-bittorrent" \
+	t=$(mktemp --suffix=qbtlib)
+	cp "$1" $t
+	torrents add -F "torrents=@$t;type=application/x-bittorrent" \
 		${@:2}
+	rm $t
 	echo
 	# -F savepath= -F category= -F tags= -F paused=true
 	;;
