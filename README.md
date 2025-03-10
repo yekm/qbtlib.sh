@@ -247,5 +247,6 @@ watch 'qbtlib.sh monitor | tail -n50'
 qbtlib.sh active | cut -f1 | qbtlib.sh connections | qbtlib.sh top
 qbtlib.sh active1 | qbtlib.sh countries | qbtlib.sh rawtop | tail -n4 | parallel -k qbtlib.sh tcountries | parallel -k --tag --colsep=$'\t' 'echo {1} | qbtlib.sh cpath' | cut -f2- -d' ' | column -t -s$'\t'
 qbtlib.sh cache1 | tail -n1 | parallel 'qbtlib.sh tfiles {} | grep Season1 | cut -f1 | qbtlib.sh setfpriority {} 6'
+too long list of hashes | parallel --pipe -n1000 -j1 qbtlib.sh cmd
 
 ```
