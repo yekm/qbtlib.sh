@@ -173,6 +173,10 @@ download all relevant torrents to a certain directory
 download all torrents mentioned on certain page  
 `rtrckr.sh frompage https://rutracker.org/forum/viewtopic.php?t=6012098 | parallel -j4 'rtrckr.sh download {} -F savepath=/mnt/all/mult/FilmScan -F category=mult/fscan -F paused=false'`
 
+forums stats  
+`$ rtrckr.sh grep | cut -f7 | sed 's/ - .*//' | sort -u | parallel --tag 'rtrckr.sh grep {} | cut -f3 | paste -sd+ | bc -l | sed "s/$/ bytes/" | qalc --set "color 0" | grep B' | sort -t$'\t' -k2 -n | qbtlib.sh table`
+
+
 ## fun
 
 Total created processes:
