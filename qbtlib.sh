@@ -48,7 +48,7 @@ _apicall() {
 	#s=--verbose
 	#s=--trace-ascii /tmp/curl.trace
 	#set -vx
-	curl -S $s \
+	curl -S -f $s \
 		http://$QBT_HOST/api/v2/$1/$2 \
 		"${@:3}"
 	#set +vx
