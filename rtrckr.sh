@@ -31,7 +31,31 @@ EOF
 	echo '1  2    3    4     5    6   7    '
 }
 
-tsv=$(dirname $(readlink "${BASH_SOURCE[0]}"))/rtrckr/rtrckr.tsv
+tsv=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))/rtrckr/rtrckr.tsv
+
+
+makelink() {
+    #echo mkl ::: "$1" ::: "$2" ::: "$3" :::
+    cpath="$2"
+    # 128 for two-byte utf
+    #title="${2:0:128}"
+    #forum="${3:0:128}"
+    title="${3:0:$1}"
+    forum="${4:0:$1}"
+    [ -z "$title" -o -z "$forum" ] && exit
+    #title="$2"
+    #forum="$3"
+    ft="forum/$forum/$title"
+    [ -d "$ft" ]  && exit
+    mkdir -p "$ft"
+    ln -s -r "$cpath" -t "$ft"
+}
+
+find_forum_title() {
+    echo fft ::: $1 ::: $2 :::
+    rtrckr.sh grep $2 | cut -f4,7 | parallel --colsep=$'\t' "makelink '$1' {1} {2}"
+}
+export -f makelink find_forum_title
 
 cmd=$1
 shift
@@ -46,7 +70,7 @@ fi
 case $cmd in
 grep)
 	[ -n "$help" ] && die 'find patterns in tsv file'
-	[ -s $tsv ] || die "error: no tsv file ($tsv), see xml2tsv.sh"
+	[ -s $tsv ] || die "error: no tsv file ($tsv), see rtrckr.sh xml2tsv"
 	if [ -z "$1" ]; then
 		cat $tsv
 	else
@@ -101,6 +125,7 @@ xml2tsv)
 		| tr '\r' '\n' \
 		| pv -N filtered -crabt \
 		| perl -pe 's/.*torrent id="(\d+)" registred_at="(.+)" size="(\d+)".*<title>(.*)<\/title>.*hash="(\w+)".*forum id="(\d+)">(.*)<\/forum>.*/$1\t$2\t$3\t$4\t$5\tfid:$6\t$7/' \
+		| sed 's|<!\[CDATA\[||g; s|\]\]||g; s|\t ||; s|/|-|g' \
 		| pv -N tsv -crabt \
 		>$tsv
 	;;
@@ -110,6 +135,32 @@ curl)
 	which rtrkr_curl.sh >/dev/null || die 'rtrkr_curl.sh not fount, see README.md'
 	rtrkr_curl.sh $@
 	;;
+
+makelinks)
+    [ -n "$help" ] && die 'makes a directory-symlink tree that resembles forum-thread structure'
+    # at least on bcachefs max name lenght is 512
+    ncheck=$(perl -E "print 'q' x 255")
+    touch $ncheck 2>/dev/null && maxname=256 && rm $ncheck
+    touch $ncheck$ncheck 2>/dev/null && maxname=512 && rm $ncheck$ncheck
+    echo maxname is $maxname
+    # account for multi-byte characters
+    maxname=$(( maxname / 2 ))
+    export cachetsv=/tmp/qbtlib.cache.tsv
+    # ~2 times faster than plain grep
+    qbtlib.sh cache1 \
+        | pv -rabtc -N "reading cache from qbt" \
+        | parallel --pipe -n2048 "grep -w -F -i -f- $tsv" \
+        | pv -rabtc -N "writing cache to tsv" \
+        >$cachetsv
+    echo
+    qbtlib.sh cache.js \
+        | jq -r '.[] | [.content_path, .hash] | @tsv' \
+        | pv -rabtc -N "reading cache from qbt" \
+        | parallel --colsep=$'\t' -j50% "echo -n {1}$'\t' ; grep -w -F -i {2} $cachetsv | cut -f4,7; echo" \
+        | pv -rabtc -N "filtering hashes from tsv" \
+        | grep -v ^$ \
+        | parallel --colsep=$'\t' -j50% --eta makelink $maxname
+    ;;
 
 *)
 	die no such command
