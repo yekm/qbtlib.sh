@@ -35,25 +35,20 @@ tsv=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))/rtrckr/rtrckr.tsv
 
 
 makelink() {
-    #echo mkl ::: "$1" ::: "$2" ::: "$3" :::
-    cpath="$2"
-    # 128 for two-byte utf
-    #title="${2:0:128}"
-    #forum="${3:0:128}"
-    title="${3:0:$1}"
-    forum="${4:0:$1}"
-    [ -z "$title" -o -z "$forum" ] && exit
-    #title="$2"
-    #forum="$3"
-    ft="forum/$forum/$title"
-    [ -d "$ft" ]  && exit
-    mkdir -p "$ft"
-    ln -s -r "$cpath" -t "$ft"
+	#echo mkl ::: "$1" ::: "$2" ::: "$3" :::
+	cpath="$2"
+	title="${3:0:$1}"
+	forum="${4:0:$1}"
+	[ -z "$title" -o -z "$forum" ] && exit
+	ft="forum/$forum/$title"
+	[ -d "$ft" ]  && exit
+	mkdir -p "$ft"
+	ln -s -r "$cpath" -t "$ft"
 }
 
 find_forum_title() {
-    echo fft ::: $1 ::: $2 :::
-    rtrckr.sh grep $2 | cut -f4,7 | parallel --colsep=$'\t' "makelink '$1' {1} {2}"
+	echo fft ::: $1 ::: $2 :::
+	rtrckr.sh grep $2 | cut -f4,7 | parallel --colsep=$'\t' "makelink '$1' {1} {2}"
 }
 export -f makelink find_forum_title
 
@@ -86,8 +81,8 @@ find)
 		| sort -k2 -n \
 		| awk -F $'\t' ' BEGIN {OFS = FS} {$2 = $2/1024/1024/1024; print}' # \
 		#| qbtlib.sh table #-T3
-
 	;;
+
 ifind)
 	[ -n "$help" ] && die 'like find but output is only id, useful for `rtrckr.sh download`'
 	rtrckr.sh grep $@ \
@@ -137,30 +132,30 @@ curl)
 	;;
 
 makelinks)
-    [ -n "$help" ] && die 'makes a directory-symlink tree that resembles forum-thread structure'
-    # at least on bcachefs max name lenght is 512
-    ncheck=$(perl -E "print 'q' x 255")
-    touch $ncheck 2>/dev/null && maxname=256 && rm $ncheck
-    touch $ncheck$ncheck 2>/dev/null && maxname=512 && rm $ncheck$ncheck
-    echo maxname is $maxname
-    # account for multi-byte characters
-    maxname=$(( maxname / 2 ))
-    export cachetsv=/tmp/qbtlib.cache.tsv
-    # ~2 times faster than plain grep
-    qbtlib.sh cache1 \
-        | pv -rabtc -N "reading cache from qbt" \
-        | parallel --pipe -n2048 "grep -w -F -i -f- $tsv" \
-        | pv -rabtc -N "writing cache to tsv" \
-        >$cachetsv
-    echo
-    qbtlib.sh cache.js \
-        | jq -r '.[] | [.content_path, .hash] | @tsv' \
-        | pv -rabtc -N "reading cache from qbt" \
-        | parallel --colsep=$'\t' -j50% "echo -n {1}$'\t' ; grep -w -F -i {2} $cachetsv | cut -f4,7; echo" \
-        | pv -rabtc -N "filtering hashes from tsv" \
-        | grep -v ^$ \
-        | parallel --colsep=$'\t' -j50% --eta makelink $maxname
-    ;;
+	[ -n "$help" ] && die 'makes a directory-symlink tree that resembles forum-thread structure'
+	# at least on bcachefs max name lenght is 512
+	ncheck=$(perl -E "print 'q' x 255")
+	touch $ncheck 2>/dev/null && maxname=256 && rm $ncheck
+	touch $ncheck$ncheck 2>/dev/null && maxname=512 && rm $ncheck$ncheck
+	echo maxname is $maxname
+	# account for multi-byte characters
+	maxname=$(( maxname / 2 ))
+	export cachetsv=/tmp/qbtlib.cache.tsv
+	# ~2 times faster than plain grep
+	qbtlib.sh cache1 \
+		| pv -rabtc -N "reading cache from qbt" \
+		| parallel --pipe -n2048 "grep -w -F -i -f- $tsv" \
+		| pv -rabtc -N "writing cache to tsv" \
+		>$cachetsv
+	echo
+	qbtlib.sh cache.js \
+		| jq -r '.[] | [.content_path, .hash] | @tsv' \
+		| pv -rabtc -N "reading cache from qbt" \
+		| parallel --colsep=$'\t' -j50% "echo -n {1}$'\t' ; grep -w -F -i {2} $cachetsv | cut -f4,7; echo" \
+		| pv -rabtc -N "filtering hashes from tsv" \
+		| grep -v ^$ \
+		| parallel --colsep=$'\t' -j50% --eta makelink $maxname
+	;;
 
 *)
 	die no such command
