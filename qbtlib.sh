@@ -164,6 +164,7 @@ last.r)
 		jq -r '.[] | [ .hash, .category, .content_path, .progress*100, .ratio ] | @tsv' | \
 		cut -f2-
 	;;
+
 active)
 	[ -n "$help" ] && die '... list torrents sotred by `added_on` filtered by `active`'
 	torrents info -G \
@@ -182,6 +183,7 @@ active.js)
 		--data "filter=active" | \
 		jq
 	;;
+
 tinfo.js)
 	[ -n "$help" ] && die 'h|p torrent info in json'
 	hashes=$(paste -sd\|)
@@ -192,6 +194,7 @@ tinfo)
 	[ -n "$help" ] && die 'h|p torrent info'
 	qbtlib.sh tinfo.js | jq -r '.[]' | qbtlib.sh js.table
 	;;
+
 resume)
 	[ -n "$help" ] && die 'h|p resume torrents'
 	hashes=$(paste -sd\|)
@@ -202,6 +205,7 @@ pause)
 	hashes=$(paste -sd\|)
 	torrents pause -X POST --data "hashes=$hashes"
 	;;
+
 recheck)
 	[ -n "$help" ] && die 'h|p recheck torrents'
 	hashes=$(paste -sd\|)
@@ -212,6 +216,28 @@ slowcheck)
 	j=${1:-2}
 	parallel -j$j --joblog slowcheck.joblog --halt soon,fail=1 --resume --eta --lb --tag recheckwait
 	;;
+
+add)
+	[ -n "$help" ] && die "... <filename> [args] add torrent. optional args -F savepath= -F category= -F tags= -F paused=true"
+	[ -s "$1" ] || die 'specify torrent filename'
+	t=$(mktemp --suffix=qbtlib)
+	cp "$1" $t
+	torrents add -F "torrents=@$t;type=application/x-bittorrent" \
+		${@:2}
+	rm $t
+	echo
+	# -F savepath= -F category= -F tags= -F paused=true
+	;;
+delete)
+	[ -n "$help" ] && die 'h|p [`arg1`] delete torrents, arg1 can be "deletefilestoo"'
+	opt="--data deleteFiles=false"
+	[ "$1" = "deletefilestoo" ] && opt="--data deleteFiles=true"
+	hashes=$(paste -sd\|)
+	torrents delete -X POST $opt --data "hashes=$hashes"
+	;;
+
+
+############# Files ############################################################
 
 tfiles)
 	[ -n "$help" ] && die '... <hash> list files by one `hash` (name, priority, progress, size in GiB, name)'
@@ -227,17 +253,18 @@ tfiles.js)
 	torrents files -G --data "hash=$1" | jq
 	;;
 
-pieces)
-	[ -n "$help" ] && die '... <hash> show torrent pieces'
-	torrents pieceStates -G --data "hash=$1" | tr -d ',[]' | tr 012 .v*
-	echo
-	;;
 setfpriority)
 	[ -n "$help" ] && die 'id|p <arg1> <arg2> set pieces priority to `arg2` (0,1,6,7) for torrent with hash `arg1`'
 	[ -z "$1" ] && die specify torrent hash
 	[ -z "$2" ] && die specity pieces priority
 	ids=$(paste -sd\|)
 	torrents filePrio -X POST --data "hash=$1" --data "priority=$2" --data "id=$ids"
+	;;
+
+pieces)
+	[ -n "$help" ] && die '... <hash> show torrent pieces'
+	torrents pieceStates -G --data "hash=$1" | tr -d ',[]' | tr 012 .v*
+	echo
 	;;
 
 cpath)
@@ -278,6 +305,9 @@ trackers)
 		| jq -r '.[] | [ .tier, .url, .status, .num_peers, .num_seeds, .num_downloaded, .msg ] | @tsv ' \
 		| qbtlib.sh table
 	;;
+
+
+############# Peers ############################################################
 
 peers)
 	[ -n "$help" ] && die 'h|. list peers on a hash sorted by country, like in webui'
@@ -369,6 +399,9 @@ monitor_dl)
 		qbtlib.sh table -N status,dhtnodes,dl,up,total,dl_rl,up_rl
 	;;
 
+
+############# Preferences ######################################################
+
 togglespeed)
 	[ -n "$help" ] && die '... toggle alternative speed limits'
 	# wtf: GET reqest returns 405
@@ -455,46 +488,9 @@ log)
 		| jq -r '.[] | [.id, .type, .timestamp, .message] | @tsv' \
 		| qbtlib.sh table
 	;;
-add)
-	[ -n "$help" ] && die "... <filename> [args] add torrent. optional args -F savepath= -F category= -F tags= -F paused=true"
-	[ -s "$1" ] || die 'specify torrent filename'
-	t=$(mktemp --suffix=qbtlib)
-	cp "$1" $t
-	torrents add -F "torrents=@$t;type=application/x-bittorrent" \
-		${@:2}
-	rm $t
-	echo
-	# -F savepath= -F category= -F tags= -F paused=true
-	;;
-delete)
-	[ -n "$help" ] && die 'h|p [`arg1`] delete torrents, arg1 can be "deletefilestoo"'
-	opt="--data deleteFiles=false"
-	[ "$1" = "deletefilestoo" ] && opt="--data deleteFiles=true"
-	hashes=$(paste -sd\|)
-	torrents delete -X POST $opt --data "hashes=$hashes"
-	;;
 
-# utilities
 
-top)
-	[ -n "$help" ] && die ".|. actually bottom"
-	sort | uniq -c "$@" | sort -n # without -r it's actually a `bottom`
-	;;
-rawtop)
-	[ -n "$help" ] && die ".|. same as bove but without first column of numbers"
-	qbtlib.sh top "$@" | sed 's/^ *[0-9]* //'
-	;;
-
-table)
-	[ -n "$help" ] && die ".|. [] format tsv as table"
-	column -t -s$'\t' "$@"
-	;;
-js.table)
-	[ -n "$help" ] && die ".|. [] format json object key-values as table"
-	jq -r 'to_entries | map(select(.key != "null"))[] | [ .key, .value ] | @tsv' \
-		| qbtlib.sh table "$@" \
-		| less
-	;;
+############# related stuff ####################################################
 
 # systemd-run --user -E PATH --on-calendar=minutely -- bash qbtlib.sh influx
 influx)
@@ -570,6 +566,28 @@ sparkhistory)
 	printf "ul %7.3f/%7.3f %s %s %s\n" $max_ul $min_ul "$(tail -n $cc $shlog | cut -f 3 | tac | spark)" "$then"
 	printf "dl %7.3f/%7.3f %s %s %s\n" $max_dl $min_dl "$(tail -n $cc $shlog | cut -f 4 | tac | spark)" "$then"
 ;;
+
+############# utilities ########################################################
+
+top)
+	[ -n "$help" ] && die ".|. actually bottom"
+	sort | uniq -c "$@" | sort -n # without -r it's actually a `bottom`
+	;;
+rawtop)
+	[ -n "$help" ] && die ".|. same as bove but without first column of numbers"
+	qbtlib.sh top "$@" | sed 's/^ *[0-9]* //'
+	;;
+
+table)
+	[ -n "$help" ] && die ".|. [] format tsv as table"
+	column -t -s$'\t' "$@"
+	;;
+js.table)
+	[ -n "$help" ] && die ".|. [] format json object key-values as table"
+	jq -r 'to_entries | map(select(.key != "null"))[] | [ .key, .value ] | @tsv' \
+		| qbtlib.sh table "$@" \
+		| less
+	;;
 
 sum)
 	[ -n "$help" ] && die ".|. add up all numbers"
