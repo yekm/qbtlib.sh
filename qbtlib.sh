@@ -4,7 +4,6 @@
 
 export PATH=$BASH_SOURCE:$PATH
 
-tmp=/tmp/qbtlib.sh.cache_$(date +%F_%R).zst
 shlog=/tmp/qbtlib_speedhistory.log
 
 export QBT_HOST=${QBT_HOST:-localhost:8283}
@@ -137,39 +136,41 @@ fi
 case $cmd in
 cache)
 	[ -n "$help" ] && die '... print cached `qbtlib.sh last`'
-	cat $(ls -1t /tmp/qbtlib.sh.cache_* | head -n1) \
+	cat $(qbtlib.sh cachefile) \
 		| zstdmt -d \
 		| jq -r '.[] | [ .hash, .category, .content_path, .progress*100 ] | @tsv'
 	# todo: tmp cleanup
 	;;
 cache1)
 	[ -n "$help" ] && die '... print only hashes from cached `qbtlib.sh last`'
-	qbtlib.sh cache | cut -f1
+	cf=$(qbtlib.sh cachefile)
+	[ "$cf" -nt "$cf-1" ] && qbtlib.sh cache.js \
+		| jq -r '.[] | [ .hash ] | @tsv' \
+		>"$cf-1"
+	cat "$cf-1"
 	;;
 cache.js)
 	[ -n "$help" ] && die '... print cached `qbtlib.sh last` in json'
-	cat $(ls -1t /tmp/qbtlib.sh.cache_* | head -n1) \
+	cat $(qbtlib.sh cachefile) \
 		| zstdmt -d
 	;;
 last)
 	[ -n "$help" ] && die '... list torrents sotred by `added_on`'
 	torrents info -G --data "sort=added_on" | \
-		zstdmt --adapt > $tmp
+		zstdmt --adapt > $(qbtlib.sh newcachefile)
 	qbtlib.sh cache
 	;;
 last.r)
 	[ -n "$help" ] && die '... list torrents sotred by `ratio`'
 	torrents info -G --data "sort=ratio" | \
-		zstdmt --adapt | tee $tmp | zstdmt -d | \
+		zstdmt --adapt | tee $(qbtlib.sh newcachefile) | zstdmt -d | \
 		jq -r '.[] | [ .hash, .category, .content_path, .progress*100, .ratio ] | @tsv' | \
 		cut -f2-
 	;;
 
 active)
 	[ -n "$help" ] && die '... list torrents sotred by `added_on` filtered by `active`'
-	torrents info -G \
-		--data "sort=added_on" \
-		--data "filter=active" | \
+	qbtlib.sh active.js | \
 		jq -r '.[] | [ .hash, .category, .content_path, .progress*100 ] | @tsv'
 	;;
 active1)
@@ -569,6 +570,15 @@ sparkhistory)
 
 ############# utilities ########################################################
 
+cachefile)
+	[ -n "$help" ] && die '... print cache file name'
+	ls -1t /tmp/qbtlib.sh.cache_${QBT_HOST}_*.zst | head -n1
+	;;
+newcachefile)
+	[ -n "$help" ] && die '... print new cache file name'
+	echo /tmp/qbtlib.sh.cache_${QBT_HOST}_$(date +%F_%R).zst
+	;;
+
 top)
 	[ -n "$help" ] && die ".|. actually bottom"
 	sort | uniq -c "$@" | sort -n # without -r it's actually a `bottom`
@@ -589,13 +599,27 @@ js.table)
 		| less
 	;;
 
-sum)
+_sum)
 	[ -n "$help" ] && die ".|. add up all numbers"
 	paste -sd+ \
 		| parallel 'python -c "print({})"'
 	# or with bc, which cant into scientific notation:
 	# grep -v e | paste -sd+ | bc -l
-;;
+	;;
+sum)
+	[ -n "$help" ] && die ".|. add up a lot of numbers"
+	parallel --pipe -n4096 qbtlib.sh _sum \
+		| qbtlib.sh _sum
+	;;
+
+bytes)
+	[ -n "$help" ] && die ".|. pretty print amount of bytes"
+	set -e
+	which qalc >/dev/null
+	sed "s/$/ bytes/" \
+		| qalc --set "color 0" \
+		| grep B$
+	;;
 
 *)
 	die no such command

@@ -174,7 +174,7 @@ download all torrents mentioned on certain page
 `rtrckr.sh frompage https://rutracker.org/forum/viewtopic.php?t=6012098 | parallel -j4 'rtrckr.sh download {} -F savepath=/mnt/all/mult/FilmScan -F category=mult/fscan -F paused=false'`
 
 forums stats  
-`$ rtrckr.sh grep | cut -f7 | sed 's/ - .*//' | sort -u | parallel --tag 'rtrckr.sh grep {} | cut -f3 | paste -sd+ | bc -l | sed "s/$/ bytes/" | qalc --set "color 0" | grep B' | sort -t$'\t' -k2 -n | qbtlib.sh table`
+`rtrckr.sh grep | cut -f7 | sed 's/ - .*//' | sort -u | parallel --tag 'rtrckr.sh grep {} | cut -f3 | qbtlib.sh sum | qbtlib.sh bytes' | sort -t$'\t' -k2 -n | qbtlib.sh table`
 
 
 ## fun
@@ -263,11 +263,15 @@ appendspeedhistory  ... apeend writes current date and speed in /tmp/qbtlib_spee
 plotspeed           ... plot saved speed history with gnuplot
 ss                  ... cat /tmp/qbtlib_speedhistory.log
 sparkhistory        ... ▇▅▃█▆
+cachefile           ... print cache file name
+newcachefile        ... print new cache file name
 top                 .|. actually bottom
 rawtop              .|. same as bove but without first column of numbers
 table               .|. [] format tsv as table
 js.table            .|. [] format json object key-values as table
-sum                 .|. add up all numbers
+_sum                .|. add up all numbers
+sum                 .|. add up a lot of numbers
+bytes               .|. pretty print amount of bytes
 
 examples:
 qbtlib.sh pref_sed 's/"max_connec": .*/"max_connec": 1024,/'
