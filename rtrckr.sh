@@ -14,7 +14,7 @@ helpall() {
 	helpn=$(grep -w ' -n "$help" ] && die ' ${BASH_SOURCE[0]} | grep -v helpn | wc -l)
 	[ $argn -ne $helpn ] && echo incomplete help $helpn of $argn args && exit -1
 
-	cat ${BASH_SOURCE[0]} | grep -P '^[\w\.]+\)' | tr -d ')' | \
+	cat ${BASH_SOURCE[0]} | grep -P '^[\w\.]+\)' | tr -d ')' |
 		parallel --tag -k rtrckr.sh help | qbtlib.sh table
 
 	cat << EOF
@@ -31,8 +31,7 @@ EOF
 	echo '1  2    3    4     5    6   7    '
 }
 
-tsv=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))/rtrckr/rtrckr.tsv
-
+export tsv=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))/rtrckr/rtrckr.tsv
 
 makelink() {
 	#echo mkl ::: "$1" ::: "$2" ::: "$3" :::
@@ -75,18 +74,18 @@ grep)
 
 find)
 	[ -n "$help" ] && die 'find torrents, columns: size in GiB, name, forum'
-	#cat $tsv | grep $@ \
-	rtrckr.sh grep "$@" \
-		| cut -f1,3,4,6,7 \
-		| sort -k2 -n \
-		| awk -F $'\t' ' BEGIN {OFS = FS} {$2 = $2/1024/1024/1024; print}' # \
-		#| qbtlib.sh table #-T3
+	#cat $tsv | grep $@ |
+	rtrckr.sh grep "$@" |
+		cut -f1,3,4,6,7 |
+		sort -k2 -n |
+		awk -F $'\t' ' BEGIN {OFS = FS} {$2 = $2/1024/1024/1024; print}' # |
+		#qbtlib.sh table #-T3
 	;;
 
 ifind)
 	[ -n "$help" ] && die 'like find but output is only id, useful for `rtrckr.sh download`'
-	rtrckr.sh grep $@ \
-		| cut -f1
+	rtrckr.sh grep $@ |
+		cut -f1
 	;;
 
 download)
@@ -100,10 +99,10 @@ download)
 
 frompage)
 	[ -n "$help" ] && die 'extract torrent ids from links from page `arg1`'
-	rtrckr.sh curl $1 | \
-	iconv -f cp1251 | \
-	fq -d html -o array=true -r '.. | select(.[0] == "a" and (.[1].href|test("viewtopic.php.t=[0-9]+$")))? .[1].href' |
-	sed 's/.*t=\([0-9]\+\).*/\1/'
+	rtrckr.sh curl $1 |
+		iconv -f cp1251 |
+		fq -d html -o array=true -r '.. | select(.[0] == "a" and (.[1].href|test("viewtopic.php.t=[0-9]+$")))? .[1].href' |
+		sed 's/.*t=\([0-9]\+\).*/\1/'
 	;;
 
 xml2tsv)
@@ -111,18 +110,17 @@ xml2tsv)
 	#last file from personal location if no argument
 	xml=${1:-$(ls -t /mnt/hall/rtrkr/rutracker-*.xml.xz | tail -n1)}
 
-	cat $xml \
-		| xz -d \
-		| pv -N xml -crabt \
-		| grep -e '<title>' -e '<torrent ' -e '<forum ' \
-		| tr '\n' '\r' \
-		| sed 's/\r </ </g' \
-		| tr '\r' '\n' \
-		| pv -N filtered -crabt \
-		| perl -pe 's/.*torrent id="(\d+)" registred_at="(.+)" size="(\d+)".*<title>(.*)<\/title>.*hash="(\w+)".*forum id="(\d+)">(.*)<\/forum>.*/$1\t$2\t$3\t$4\t$5\tfid:$6\t$7/' \
-		| sed 's|<!\[CDATA\[||g; s|\]\]||g; s|\t ||; s|/|-|g' \
-		| pv -N tsv -crabt \
-		>$tsv
+	cat $xml |
+		xz -d |
+		pv -N xml -crabt |
+		grep -e '<title>' -e '<torrent ' -e '<forum ' |
+		tr '\n' '\r' |
+		sed 's/\r </ </g' |
+		tr '\r' '\n' |
+		pv -N filtered -crabt |
+		perl -pe 's/.*torrent id="(\d+)" registred_at="(.+)" size="(\d+)".*<title>(.*)<\/title>.*hash="(\w+)".*forum id="(\d+)">(.*)<\/forum>.*/$1\t$2\t$3\t$4\t$5\tfid:$6\t$7/' |
+		sed 's|<!\[CDATA\[||g; s|\]\]||g; s|\t ||; s|/|-|g' |
+		pv -N tsv -crabt >$tsv
 	;;
 
 curl)
@@ -142,19 +140,18 @@ makelinks)
 	maxname=$(( maxname / 2 ))
 	export cachetsv=/tmp/qbtlib.cache.tsv
 	# ~2 times faster than plain grep
-	qbtlib.sh cache1 \
-		| pv -rabtc -N "reading cache from qbt" \
-		| parallel --pipe -n2048 "grep -w -F -i -f- $tsv" \
-		| pv -rabtc -N "writing cache to tsv" \
-		>$cachetsv
+	qbtlib.sh cache1 |
+		pv -rabtc -N "reading cache from qbt" |
+		parallel --pipe -n2048 "grep -w -F -i -f- $tsv" |
+		pv -rabtc -N "writing cache to tsv" >$cachetsv
 	echo
-	qbtlib.sh cache.js \
-		| jq -r '.[] | [.content_path, .hash] | @tsv' \
-		| pv -rabtc -N "reading cache from qbt" \
-		| parallel --colsep=$'\t' -j50% "echo -n {1}$'\t' ; grep -w -F -i {2} $cachetsv | cut -f4,7; echo" \
-		| pv -rabtc -N "filtering hashes from tsv" \
-		| grep -v ^$ \
-		| parallel --colsep=$'\t' -j50% --eta makelink $maxname
+	qbtlib.sh cache.js |
+		jq -r '.[] | [.content_path, .hash] | @tsv' |
+		pv -rabtc -N "reading cache from qbt" |
+		parallel --colsep=$'\t' -j50% "echo -n {1}$'\t' ; grep -w -F -i {2} $cachetsv | cut -f4,7; echo" |
+		pv -rabtc -N "filtering hashes from tsv" |
+		grep -v ^$ |
+		parallel --colsep=$'\t' -j50% --eta makelink $maxname
 	;;
 
 *)
@@ -166,23 +163,23 @@ esac
 set +vx
 
 
-#curl \
-#    $@ \
-#    -s -S -L -4 \
-#  -x socks5://127.0.0.1:5055 \
-#  -H 'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7' \
-#  -H 'accept-language: en-US,en;q=0.9' \
-#  -H 'cache-control: max-age=0' \
-#  -H 'content-type: application/x-www-form-urlencoded' \
-#  -H 'cookie: bb_guid=...' \
-#  -H 'origin: https://rutracker.org' \
-#  -H 'priority: u=0, i' \
-#  -H 'sec-ch-ua: "Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"' \
-#  -H 'sec-ch-ua-mobile: ?0' \
-#  -H 'sec-ch-ua-platform: "Linux"' \
-#  -H 'sec-fetch-dest: document' \
-#  -H 'sec-fetch-mode: navigate' \
-#  -H 'sec-fetch-site: same-origin' \
-#  -H 'sec-fetch-user: ?1' \
-#  -H 'upgrade-insecure-requests: 1' \
+#curl |
+#    $@ |
+#    -s -S -L -4 |
+#  -x socks5://127.0.0.1:5055 |
+#  -H 'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7' |
+#  -H 'accept-language: en-US,en;q=0.9' |
+#  -H 'cache-control: max-age=0' |
+#  -H 'content-type: application/x-www-form-urlencoded' |
+#  -H 'cookie: bb_guid=...' |
+#  -H 'origin: https://rutracker.org' |
+#  -H 'priority: u=0, i' |
+#  -H 'sec-ch-ua: "Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"' |
+#  -H 'sec-ch-ua-mobile: ?0' |
+#  -H 'sec-ch-ua-platform: "Linux"' |
+#  -H 'sec-fetch-dest: document' |
+#  -H 'sec-fetch-mode: navigate' |
+#  -H 'sec-fetch-site: same-origin' |
+#  -H 'sec-fetch-user: ?1' |
+#  -H 'upgrade-insecure-requests: 1' |
 #  -H 'user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'

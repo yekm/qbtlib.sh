@@ -19,7 +19,7 @@ helpall() {
 	[ $argn -ne $helpn ] && echo incomplete help $helpn of $argn args && exit -1
 
 	# grep possible arguments from self
-	cat ${BASH_SOURCE[0]} | grep -P '^[\w\.]+\)' | tr -d ')' | \
+	cat ${BASH_SOURCE[0]} | grep -P '^[\w\.]+\)' | tr -d ')' |
 		parallel --tag -k qbtlib.sh help | qbtlib.sh table
 	cat << EOF
 
@@ -136,41 +136,40 @@ fi
 case $cmd in
 cache)
 	[ -n "$help" ] && die '... print cached `qbtlib.sh last`'
-	cat $(qbtlib.sh cachefile) \
-		| zstdmt -d \
-		| jq -r '.[] | [ .hash, .category, .content_path, .progress*100 ] | @tsv'
+	cat $(qbtlib.sh cachefile) |
+		zstdmt -d |
+		jq -r '.[] | [ .hash, .category, .content_path, .progress*100 ] | @tsv'
 	# todo: tmp cleanup
 	;;
 cache1)
 	[ -n "$help" ] && die '... print only hashes from cached `qbtlib.sh last`'
 	cf=$(qbtlib.sh cachefile)
-	[ "$cf" -nt "$cf-1" ] && qbtlib.sh cache.js \
-		| jq -r '.[] | [ .hash ] | @tsv' \
-		>"$cf-1"
+	[ "$cf" -nt "$cf-1" ] && qbtlib.sh cache.js |
+		jq -r '.[] | [ .hash ] | @tsv' >"$cf-1"
 	cat "$cf-1"
 	;;
 cache.js)
 	[ -n "$help" ] && die '... print cached `qbtlib.sh last` in json'
-	cat $(qbtlib.sh cachefile) \
-		| zstdmt -d
+	cat $(qbtlib.sh cachefile) |
+		zstdmt -d
 	;;
 last)
 	[ -n "$help" ] && die '... list torrents sotred by `added_on`'
-	torrents info -G --data "sort=added_on" | \
+	torrents info -G --data "sort=added_on" |
 		zstdmt --adapt > $(qbtlib.sh newcachefile)
 	qbtlib.sh cache
 	;;
 last.r)
 	[ -n "$help" ] && die '... list torrents sotred by `ratio`'
-	torrents info -G --data "sort=ratio" | \
-		zstdmt --adapt | tee $(qbtlib.sh newcachefile) | zstdmt -d | \
-		jq -r '.[] | [ .hash, .category, .content_path, .progress*100, .ratio ] | @tsv' | \
+	torrents info -G --data "sort=ratio" |
+		zstdmt --adapt | tee $(qbtlib.sh newcachefile) | zstdmt -d |
+		jq -r '.[] | [ .hash, .category, .content_path, .progress*100, .ratio ] | @tsv' |
 		cut -f2-
 	;;
 
 active)
 	[ -n "$help" ] && die '... list torrents sotred by `added_on` filtered by `active`'
-	qbtlib.sh active.js | \
+	qbtlib.sh active.js |
 		jq -r '.[] | [ .hash, .category, .content_path, .progress*100 ] | @tsv'
 	;;
 active1)
@@ -179,21 +178,21 @@ active1)
 	;;
 active.js)
 	[ -n "$help" ] && die '... list torrents sotred by `added_on` filtered by `active` in json'
-	torrents info -G \
-		--data "sort=added_on" \
-		--data "filter=active" | \
+	torrents info -G --data "sort=added_on" --data "filter=active" |
 		jq
 	;;
 
 tinfo.js)
 	[ -n "$help" ] && die 'h|p torrent info in json'
 	hashes=$(paste -sd\|)
-	torrents info -G \
-		--data "hashes=$hashes" | jq
+	torrents info -G --data "hashes=$hashes" |
+		jq
 	;;
 tinfo)
 	[ -n "$help" ] && die 'h|p torrent info'
-	qbtlib.sh tinfo.js | jq -r '.[]' | qbtlib.sh js.table
+	qbtlib.sh tinfo.js |
+		jq -r '.[]' |
+		qbtlib.sh js.table
 	;;
 
 resume)
@@ -244,9 +243,9 @@ tfiles)
 	[ -n "$help" ] && die '... <hash> list files by one `hash` (name, priority, progress, size in GiB, name)'
 	[ -z "$1" ] && die 'specify hash as first argument'
 
-	torrents files -G --data "hash=$1" \
-		| jq -r '.[] | [ .index, .priority, .progress*100, .size/1024/1024/1024, .name ] | @tsv' \
-		| sort -k2
+	torrents files -G --data "hash=$1" |
+		jq -r '.[] | [ .index, .priority, .progress*100, .size/1024/1024/1024, .name ] | @tsv' |
+		sort -k2
 	;;
 tfiles.js)
 	[ -n "$help" ] && die '... <hash> list files by one `hash` in json'
@@ -271,9 +270,10 @@ pieces)
 cpath)
 	[ -n "$help" ] && die 'h|p list content path by hashes'
 	hashes=$(paste -sd\|)
-	torrents info -G \
-		--data "hashes=$hashes" | \
-		jq -r '.[] | [ .category, .content_path ] | @tsv' | sort | qbtlib.sh table
+	torrents info -G --data "hashes=$hashes" |
+		jq -r '.[] | [ .category, .content_path ] | @tsv' |
+		sort |
+		qbtlib.sh table
 	;;
 
 set_location)
@@ -302,9 +302,9 @@ qbottom)
 
 trackers)
 	[ -n "$help" ] && die 'h|. list trackers'
-	parallel 'torrents trackers --data "hash={}"' \
-		| jq -r '.[] | [ .tier, .url, .status, .num_peers, .num_seeds, .num_downloaded, .msg ] | @tsv ' \
-		| qbtlib.sh table
+	parallel 'torrents trackers --data "hash={}"' |
+		jq -r '.[] | [ .tier, .url, .status, .num_peers, .num_seeds, .num_downloaded, .msg ] | @tsv ' |
+		qbtlib.sh table
 	;;
 
 
@@ -312,10 +312,10 @@ trackers)
 
 peers)
 	[ -n "$help" ] && die 'h|. list peers on a hash sorted by country, like in webui'
-	parallel --tag 'sync torrentPeers -G --data "hash={}" \
-		| jq -r ".peers | to_entries | .[].value | [ .country_code, .ip, .port, .connection, .flags, .client, .progress, .dl_speed, .downloada, .up_speed, .uploaded, .relevance, .files ] | @tsv"' \
-		| sort \
-		| qbtlib.sh table
+	parallel --tag 'sync torrentPeers -G --data "hash={}" | \
+			jq -r ".peers | to_entries | .[].value | [ .country_code, .ip, .port, .connection, .flags, .client, .progress, .dl_speed, .downloada, .up_speed, .uploaded, .relevance, .files ] | @tsv"' |
+		sort |
+		qbtlib.sh table
 	;;
 
 peerhashes)
@@ -328,13 +328,13 @@ peerpaths)
 	;;
 connections)
 	[ -n "$help" ] && die 'h|. list peers on a hash'
-	parallel --tag 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .ip"' | \
-	sort
+	parallel --tag 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | .ip"' |
+		sort
 	;;
 connections2)
 	[ -n "$help" ] && die 'h|. list peers on a hash sorted by country'
-	parallel 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | [ .country, .ip, .flags ] | @tsv"' \
-		| sort
+	parallel 'sync torrentPeers -G --data "hash={}" | jq -r ".peers | to_entries | .[].value | [ .country, .ip, .flags ] | @tsv"' |
+		sort
 	;;
 
 countries)
@@ -350,10 +350,10 @@ icountries)
 # "hash" by coutry
 tcountries)
 	[ -n "$help" ] && die '... <country> hashes by `country`. (active list icountries hashes grepped by `country`'
-	qbtlib.sh active1 \
-		| qbtlib.sh icountries \
-		| grep -i "$1" \
-		| rev | uniq -f1 | rev
+	qbtlib.sh active1 |
+		qbtlib.sh icountries |
+		grep -i "$1" |
+		rev | uniq -f1 | rev
 	;;
 
 # jq's floor should be embedded in an arrray.
@@ -363,40 +363,40 @@ monitor)
 	[ -n "$help" ] && die '... list uploading torrent to sorted by `upspeed`'
 	cc=$(( $(tput cols) - 32 ))
 	torrents info -G \
-		--data "sort=upspeed" \
-		--data "filter=uploading" \
-		--data "filter=active" \
-		| jq -r '.[] | [ .category, .name, .upspeed/1024/1024, .progress*100 ] | @tsv' \
-		| awk 'BEGIN { FS=OFS="\t" } {
+			--data "sort=upspeed" \
+			--data "filter=uploading" \
+			--data "filter=active" |
+		jq -r '.[] | [ .category, .name, .upspeed/1024/1024, .progress*100 ] | @tsv' |
+		awk 'BEGIN { FS=OFS="\t" } {
 			$1 = substr($1,0,18);
 			$2 = substr($2,0,'$cc');
 			$3 = substr($3,0,5);
 			$4 = substr($4,0,4);
-			print $1"\t"$2"\t"$3"\t"$4; }' \
-		| qbtlib.sh table -o' ' -N cat,name,up,done -R 3,4
+			print $1"\t"$2"\t"$3"\t"$4; }' |
+		qbtlib.sh table -o' ' -N cat,name,up,done -R 3,4
 	echo
-	transfer info | \
-		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024 ] | @tsv' | \
+	transfer info |
+		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024 ] | @tsv' |
 		qbtlib.sh table -N status,dhtnodes,dl,up,total
 	;;
 monitor_dl)
 	[ -n "$help" ] && die '... list downloading torrent to sorted by `dlspeed`'
 	cc=$(( $(tput cols) - 32 ))
 	torrents info -G \
-		--data "sort=dlspeed" \
-		--data "filter=downloading" \
-		--data "filter=active" \
-		| jq -r '.[] | [ .category, .name, .dlspeed/1024/1024, .progress*100 ] | @tsv' \
-		| awk 'BEGIN { FS=OFS="\t" } {
+			--data "sort=dlspeed" \
+			--data "filter=downloading" \
+			--data "filter=active" |
+		jq -r '.[] | [ .category, .name, .dlspeed/1024/1024, .progress*100 ] | @tsv' |
+		awk 'BEGIN { FS=OFS="\t" } {
 			$1 = substr($1,0,18);
 			$2 = substr($2,0,'$cc');
 			$3 = substr($3,0,5);
 			$4 = substr($4,0,4);
-			print $1"\t"$2"\t"$3"\t"$4; }' \
-		| qbtlib.sh table -o' ' -N cat,name,up,done -R 3,4
+			print $1"\t"$2"\t"$3"\t"$4; }' |
+		qbtlib.sh table -o' ' -N cat,name,up,done -R 3,4
 	echo
-	transfer info | \
-		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024, .dl_rate_limit/1024/1024, .up_rate_limit/1024/1024 ] | @tsv' | \
+	transfer info |
+		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024, .dl_rate_limit/1024/1024, .up_rate_limit/1024/1024 ] | @tsv' |
 		qbtlib.sh table -N status,dhtnodes,dl,up,total,dl_rl,up_rl
 	;;
 
@@ -419,7 +419,7 @@ gspeed)
 
 speednow)
 	[ -n "$help" ] && die "... current speed ul dl"
-	transfer info | \
+	transfer info |
 		jq -r '[ .up_info_speed/1024/1024, .dl_info_speed/1024/1204 ] | @tsv'
 	;;
 
@@ -448,33 +448,33 @@ pref_sed)
 
 pref)
 	[ -n "$help" ] && die "... app preferences"
-	app preferences \
-		| jq -r 'to_entries | map(select(.key != "scan_dirs"))[] | [ .key, .value ] | @tsv' \
-		| qbtlib.sh table \
-		| less
+	app preferences |
+		jq -r 'to_entries | map(select(.key != "scan_dirs"))[] | [ .key, .value ] | @tsv' |
+		qbtlib.sh table |
+		less
 	;;
 
 stat)
 	[ -n "$help" ] && die "... display overall statistics"
 	qbtlib.sh cache.js | jq -r '.[] | .state' | qbtlib.sh top
 	qbtlib.sh cache.js | jq -r '.[] | .category' | qbtlib.sh top
-	transfer info | \
-		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024, .dl_rate_limit/1024/1024, .up_rate_limit/1024/1024 ] | @tsv' | \
+	transfer info |
+		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024, .dl_rate_limit/1024/1024, .up_rate_limit/1024/1024 ] | @tsv' |
 		qbtlib.sh table -N "status,dhtnodes,dl MiB/s,up MiB/s,total MiB/s,ratelimit dl MiB/s,ratelimit up MiB/s"
 	exit
 	# todo:
-	qbtlib.sh cache.js | jq -r '.[] | .ratio' \
-		| sort \
-		| gnuplot -p -e \
+	qbtlib.sh cache.js | jq -r '.[] | .ratio' |
+		sort |
+		gnuplot -p -e \
 			"set terminal dumb size 120, 30; \
 			binwidth=10; \
 			set boxwidth binwidth; \
 			bin(x,width)=width*floor(x/width); \
 			set logscale y; \
 			plot '-' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes"
-	qbtlib.sh cache.js | jq -r '.[] | .size' \
-		| sort \
-		| gnuplot -p -e \
+	qbtlib.sh cache.js | jq -r '.[] | .size' |
+		sort |
+		gnuplot -p -e \
 			"set terminal dumb size 120, 30; \
 			binwidth=1000000; \
 			set boxwidth binwidth; \
@@ -485,9 +485,9 @@ stat)
 
 log)
 	[ -n "$help" ] && die "... display log"
-	_apicall log main \
-		| jq -r '.[] | [.id, .type, .timestamp, .message] | @tsv' \
-		| qbtlib.sh table
+	_apicall log main |
+		jq -r '.[] | [.id, .type, .timestamp, .message] | @tsv' |
+		qbtlib.sh table
 	;;
 
 
@@ -594,31 +594,31 @@ table)
 	;;
 js.table)
 	[ -n "$help" ] && die ".|. [] format json object key-values as table"
-	jq -r 'to_entries | map(select(.key != "null"))[] | [ .key, .value ] | @tsv' \
-		| qbtlib.sh table "$@" \
-		| less
+	jq -r 'to_entries | map(select(.key != "null"))[] | [ .key, .value ] | @tsv' |
+		qbtlib.sh table "$@" |
+		less
 	;;
 
 _sum)
 	[ -n "$help" ] && die ".|. add up all numbers"
-	paste -sd+ \
-		| parallel 'python -c "print({})"'
+	paste -sd+ |
+		parallel 'python -c "print({})"'
 	# or with bc, which cant into scientific notation:
 	# grep -v e | paste -sd+ | bc -l
 	;;
 sum)
 	[ -n "$help" ] && die ".|. add up a lot of numbers"
-	parallel --pipe -n4096 qbtlib.sh _sum \
-		| qbtlib.sh _sum
+	parallel --pipe -n4096 qbtlib.sh _sum |
+		qbtlib.sh _sum
 	;;
 
 bytes)
 	[ -n "$help" ] && die ".|. pretty print amount of bytes"
 	set -e
 	which qalc >/dev/null
-	sed "s/$/ bytes/" \
-		| qalc --set "color 0" \
-		| grep B$
+	sed "s/$/ bytes/" |
+		qalc --set "color 0" |
+		grep B$
 	;;
 
 *)
