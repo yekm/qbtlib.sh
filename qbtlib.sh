@@ -537,7 +537,8 @@ EOF
 # systemd-run --user -E PATH --on-calendar=minutely -- bash qbtlib.sh appendspeedhistory
 appendspeedhistory)
 	[ -n "$help" ] && die "... apeend writes current date and speed in $shlog"
-	printf "%s\t%s\t%s\t%s\n" $QBT_HOST $(date +%s) $(qbtlib.sh speednow) | tee -a $shlog
+	printf "%s\t%s\t%s\t%s\n" $QBT_HOST $(date +%s) $(qbtlib.sh speednow) |
+		sem --id shlog tee -a $shlog
 	;;
 
 plotspeed)
