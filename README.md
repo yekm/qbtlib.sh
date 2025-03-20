@@ -257,6 +257,7 @@ pref.js             ... [arg1] set new preferences from file `arg1` if exists. d
 pref_sed            ... <arg1> set new preferences filtered by sed arg1
 pref                ... app preferences
 stat                ... display overall statistics
+stat.png            ... generate ratio-size scatter plot
 log                 ... display log
 influx              ... store number of active torrents and connections, and ul dl speed in influxdb
 appendspeedhistory  ... apeend writes current date and speed in /tmp/qbtlib_speedhistory.log

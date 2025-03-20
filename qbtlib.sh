@@ -461,6 +461,22 @@ stat)
 	transfer info |
 		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024, .dl_rate_limit/1024/1024, .up_rate_limit/1024/1024 ] | @tsv' |
 		qbtlib.sh table -N "status,dhtnodes,dl MiB/s,up MiB/s,total MiB/s,ratelimit dl MiB/s,ratelimit up MiB/s"
+	;;
+
+stat.png)
+	[ -n "$help" ] && die "... generate ratio-size scatter plot"
+	png=/tmp/qbtlib-stat-ratio-size-$(date +%F_%R).png
+	qbtlib.sh cache.js | jq -r '.[] | [ .ratio, .size ] | @tsv' |
+		gnuplot -p -e "\
+			set terminal pngcairo size 1920,1080; \
+			set style fill transparent solid 0.02 noborder; \
+			set style circle radius 4; \
+			set logscale y; \
+			set logscale x; \
+			plot '-' u 1:2 with circles lc rgb 'red'\
+			" \
+		>$png
+		ls -lah $png
 	exit
 	# todo:
 	qbtlib.sh cache.js | jq -r '.[] | .ratio' |
