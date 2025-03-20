@@ -129,7 +129,7 @@ curl)
 	rtrkr_curl.sh $@
 	;;
 
-makelinks)
+rtrckrfs)
 	[ -n "$help" ] && die 'makes a directory-symlink tree that resembles forum-thread structure'
 	# at least on bcachefs max name lenght is 512
 	ncheck=$(perl -E "print 'q' x 255")
