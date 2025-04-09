@@ -182,6 +182,12 @@ active.js)
 		jq
 	;;
 
+info.js)
+	[ -n "$help" ] && die '... list torrents sotred by `added_on` filtered by `active` in json'
+	torrents info -G $@ |
+		jq
+	;;
+
 tinfo.js)
 	[ -n "$help" ] && die 'h|p torrent info in json'
 	hashes=$(paste -sd\|)
@@ -194,6 +200,13 @@ tinfo)
 		jq -r '.[]' |
 		qbtlib.sh js.table
 	;;
+tinfo.my)
+	[ -n "$help" ] && die 'h|p torrent info in custom format'
+	qbtlib.sh tinfo.js |
+		jq -r '.[] | [ .content_path, .progress, .state, .comment, .total_size/1024/1024, .hash ] | @tsv' |
+		qbtlib.sh table
+	;;
+
 
 resume)
 	[ -n "$help" ] && die 'h|p resume torrents'

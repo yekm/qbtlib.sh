@@ -177,8 +177,10 @@ last.r              ... list torrents sotred by `ratio`
 active              ... list torrents sotred by `added_on` filtered by `active`
 active1             ... list only hashes sotred by `added_on` filtered by `active`
 active.js           ... list torrents sotred by `added_on` filtered by `active` in json
+info.js             ... list torrents sotred by `added_on` filtered by `active` in json
 tinfo.js            h|p torrent info in json
 tinfo               h|p torrent info
+tinfo.my            h|p torrent info in custom format
 resume              h|p resume torrents
 pause               h|p pause torrents
 recheck             h|p recheck torrents
