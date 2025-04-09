@@ -4,9 +4,9 @@
 
 export PATH=$BASH_SOURCE:$PATH
 
-shlog=/tmp/qbtlib_speedhistory.log
-
 export QBT_HOST=${QBT_HOST:-localhost:8283}
+cachefile=/tmp/qbtlib.sh.cache_${QBT_HOST}_json.zst
+shlog=/tmp/qbtlib_speedhistory.log
 
 die() {
 	echo $@
@@ -136,33 +136,33 @@ fi
 case $cmd in
 cache)
 	[ -n "$help" ] && die '... print cached `qbtlib.sh last`'
-	cat $(qbtlib.sh cachefile) |
+	cat $cachefile |
 		zstdmt -d |
 		jq -r '.[] | [ .hash, .category, .content_path, .progress*100 ] | @tsv'
 	# todo: tmp cleanup
 	;;
 cache1)
 	[ -n "$help" ] && die '... print only hashes from cached `qbtlib.sh last`'
-	cf=$(qbtlib.sh cachefile)
+	cf=$cachefile
 	[ "$cf" -nt "$cf-1" ] && qbtlib.sh cache.js |
 		jq -r '.[] | [ .hash ] | @tsv' >"$cf-1"
 	cat "$cf-1"
 	;;
 cache.js)
 	[ -n "$help" ] && die '... print cached `qbtlib.sh last` in json'
-	cat $(qbtlib.sh cachefile) |
+	cat $cachefile |
 		zstdmt -d
 	;;
 last)
 	[ -n "$help" ] && die '... list torrents sotred by `added_on`'
 	torrents info -G --data "sort=added_on" |
-		zstdmt --adapt > $(qbtlib.sh newcachefile)
+		zstdmt --adapt > $cachefile
 	qbtlib.sh cache
 	;;
 last.r)
 	[ -n "$help" ] && die '... list torrents sotred by `ratio`'
 	torrents info -G --data "sort=ratio" |
-		zstdmt --adapt | tee $(qbtlib.sh newcachefile) | zstdmt -d |
+		zstdmt --adapt | tee $cachefile | zstdmt -d |
 		jq -r '.[] | [ .hash, .category, .content_path, .progress*100, .ratio ] | @tsv' |
 		cut -f2-
 	;;
@@ -599,15 +599,6 @@ sparkhistory)
 ;;
 
 ############# utilities ########################################################
-
-cachefile)
-	[ -n "$help" ] && die '... print cache file name'
-	ls -1t /tmp/qbtlib.sh.cache_${QBT_HOST}_*.zst | head -n1
-	;;
-newcachefile)
-	[ -n "$help" ] && die '... print new cache file name'
-	echo /tmp/qbtlib.sh.cache_${QBT_HOST}_$(date +%F_%R).zst
-	;;
 
 top)
 	[ -n "$help" ] && die ".|. actually bottom"

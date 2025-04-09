@@ -222,8 +222,6 @@ appendspeedhistory  ... apeend writes current date and speed in /tmp/qbtlib_spee
 plotspeed           ... plot saved speed history with gnuplot
 ss                  ... cat /tmp/qbtlib_speedhistory.log
 sparkhistory        ... ▇▅▃█▆
-cachefile           ... print cache file name
-newcachefile        ... print new cache file name
 top                 .|. actually bottom
 rawtop              .|. same as bove but without first column of numbers
 table               .|. [] format tsv as table
