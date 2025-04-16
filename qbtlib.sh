@@ -213,10 +213,10 @@ resume)
 	hashes=$(paste -sd\|)
 	torrents start -X POST --data "hashes=$hashes"
 	;;
-pause)
+pause|stop)
 	[ -n "$help" ] && die 'h|p pause torrents'
 	hashes=$(paste -sd\|)
-	torrents pause -X POST --data "hashes=$hashes"
+	torrents stop -X POST --data "hashes=$hashes"
 	;;
 
 recheck)
