@@ -5,8 +5,14 @@
 export PATH=$BASH_SOURCE:$PATH
 
 export QBT_HOST=${QBT_HOST:-localhost:8283}
-cachefile=/tmp/qbtlib.sh.cache_${QBT_HOST}_json.zst
+tmpfile=/tmp/qbtlib.sh.${QBT_HOST}
+cachefile=$tmpfile.json.zst
 shlog=/tmp/qbtlib_speedhistory.log
+
+debuglog() {
+	echo "$(date +%F_%R) $@" >/dev/stderr
+}
+export -f debuglog
 
 die() {
 	echo $@
@@ -47,6 +53,8 @@ _apicall() {
 	#s=--verbose
 	#s=--trace-ascii /tmp/curl.trace
 	#set -vx
+	[ "x$DEBUG" = "x1" ] && debuglog "curl http://$QBT_HOST/api/v2/$1/$2"
+	[ "x$DEBUG" = "x2" ] && debuglog "curl http://$QBT_HOST/api/v2/$1/$2 ${@:3}"
 	curl -S -f $s \
 		http://$QBT_HOST/api/v2/$1/$2 \
 		"${@:3}"
