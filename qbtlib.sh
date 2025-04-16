@@ -529,8 +529,7 @@ log)
 
 
 ############# related stuff ####################################################
-
-# systemd-run --user -E PATH --on-calendar=minutely -- bash qbtlib.sh influx
+# parallel "systemd-run --user -E PATH -E QBT_HOST=localhost:{} --on-calendar='*:00/10:00 -- bash qbtlib.sh influx" ::: 8283 8284 8285
 influx)
 	[ -n "$help" ] && die "... store number of active torrents and connections, and ul dl speed in influxdb"
 	sdir=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
@@ -539,18 +538,24 @@ influx)
 	# all sorts of weird stuff in grafana without aligned time in data points
 	d=$(date +%s)
 
-	cat >/tmp/qbtlib.sh.influx.data << EOF
+	stat=$(torrents info -G | jq -r '.[] | .state' | qbtlib.sh top | awk '{print "echo "$2",host=$QBT_HOST value="$1" $d"}')
+
+	idata=$tmpfile.influx.data
+	cat >$idata << EOF
 	active_torrents,host=$QBT_HOST value=$(qbtlib.sh active | wc -l) $d
 	connections,host=$QBT_HOST value=$(qbtlib.sh active1 | qbtlib.sh connections | wc -l) $d
 	dl_speed,host=$QBT_HOST value=$(transfer info | jq -r .dl_info_speed) $d
 	up_speed,host=$QBT_HOST value=$(transfer info | jq -r .up_info_speed) $d
 	max_connec,host=$QBT_HOST value=$(qbtlib.sh pref.js | jq -r .max_connec) $d
+	$(eval "$stat")
 EOF
+
+	[ -n "$DEBUG" ] && cat $idata && exit
 
 	curl -S -s \
 		'http://influx.lan/api/v2/write?org=h0me&bucket=qbt&precision=s' \
 		--header "Authorization: Token $token" \
-		--data-binary @/tmp/qbtlib.sh.influx.data
+		--data-binary @$idata
 
 	;;
 
