@@ -89,7 +89,7 @@ tstate() {
 	echo $1 | qbtlib.sh tinfo | jq -r ".[] | .state"
 }
 
-# error missingFiles uploading pausedUP queuedUP stalledUP checkingUP forcedUP allocating downloading metaDL pausedDL queuedDL stalledDL checkingDL forcedDL checkingResumeData moving unknown 
+# error missingFiles uploading pausedUP queuedUP stalledUP checkingUP forcedUP allocating downloading metaDL pausedDL queuedDL stalledDL checkingDL forcedDL checkingResumeData moving unknown
 
 recheckwait() {
 	tstate $1 | grep \
@@ -113,7 +113,7 @@ recheckwait() {
 	while [ $(tstate $1) != "checkingUP" ]; do
 		(( i++ ))
 		if [ $i -gt 16 ]; then
-			echo -n TIMEOUT in $i seconds:\ 
+			echo -n TIMEOUT in $i seconds:\
 			echo $1 | qbtlib.sh tinfo | jq -r ".[] | [.state, .name] | @tsv"
 			exit
 		fi
@@ -124,7 +124,7 @@ recheckwait() {
 	while [ $(tstate $1) == "checkingUP" ]; do
 		sleep 2
 	done
-	echo -n recheck done:\ 
+	echo -n recheck done:\
 	echo $1 | qbtlib.sh tinfo | jq -r ".[] | [.state, .name] | @tsv"
 }
 
@@ -144,7 +144,7 @@ fi
 case $cmd in
 cache)
 	[ -n "$help" ] && die '... print cached `qbtlib.sh last`'
-	cat $cachefile |
+	cat ${1:-$cachefile} |
 		zstdmt -d |
 		jq -r '.[] | [ .hash, .category, .content_path, .progress*100 ] | @tsv'
 	# todo: tmp cleanup
@@ -158,7 +158,7 @@ cache1)
 	;;
 cache.js)
 	[ -n "$help" ] && die '... print cached `qbtlib.sh last` in json'
-	cat $cachefile |
+	cat ${1:-$cachefile} |
 		zstdmt -d
 	;;
 last)
@@ -297,11 +297,21 @@ cpath)
 		qbtlib.sh table
 	;;
 
+get_location)
+    [ -n "$help" ] && die 'h|p get torrent locations'
+    qbtlib.sh tinfo.js | jq -r '.[] | [ .hash, .content_path] | @tsv'
+    ;;
 set_location)
 	[ -n "$help" ] && die 'h|p <arg1> moves torrents to a new location `arg1`'
 	[ -z "$1" ] && die specify location as first arg
 	hashes=$(paste -sd\|)
 	torrents setLocation -X POST --data "hashes=$hashes" --data "location=$1"
+	;;
+sed_location)
+    #die 'fix escaping issues first'
+    [ -n "$help" ] && die 'h|p <arg1> moves torrents to a new location `echo old_location | sed arg1`'
+    [ -z "$1" ] && die specify sed expression
+	qbtlib.sh get_location | sed $1 | parallel --colsep=$'\t' torrents setLocation -X POST --data "hashes={1}" --data 'location={=2 $_=Q($arg[2]) =}'
 	;;
 set_category)
 	[ -n "$help" ] && die 'h|p <arg1> set cetegory to `<arg1>` on torrents'
@@ -321,11 +331,20 @@ qbottom)
 	torrents bottomPrio -X POST --data "hashes=$hashes"
 	;;
 
+tracker1)
+	[ -n "$help" ] && die 'h|. list trackers'
+	torrents trackers --data "hash=$1" |
+		jq -r '.[] | [ .tier, .url, .status, .num_peers, .num_seeds, .num_downloaded, .msg ] | @tsv '
+	;;
+
 trackers)
 	[ -n "$help" ] && die 'h|. list trackers'
-	parallel 'torrents trackers --data "hash={}"' |
-		jq -r '.[] | [ .tier, .url, .status, .num_peers, .num_seeds, .num_downloaded, .msg ] | @tsv ' |
-		qbtlib.sh table
+	parallel --tag qbtlib.sh tracker1
+	;;
+
+tracker_add)
+	[ -n "$help" ] && die 'h|. <tracker_url> add tracker url to torrents'
+	parallel torrents addTrackers -X POST --data "hash={}" --data "urls=$1"
 	;;
 
 
@@ -414,13 +433,27 @@ monitor_dl)
 			$3 = substr($3,0,5);
 			$4 = substr($4,0,4);
 			print $1"\t"$2"\t"$3"\t"$4; }' |
-		qbtlib.sh table -o' ' -N cat,name,up,done -R 3,4
+		qbtlib.sh table -o' ' -N cat,name,MiB/s,done -R 3,4
 	echo
 	transfer info |
 		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024, .dl_rate_limit/1024/1024, .up_rate_limit/1024/1024 ] | @tsv' |
 		qbtlib.sh table -N status,dhtnodes,dl,up,total,dl_rl,up_rl
 	;;
 
+kick_stalled_dl)
+	[ -n "$help" ] && die '... [delay] deprioritise incomplete stalled downloading torrents'
+
+	while true; do
+		qbtlib.sh info.js --data "filter=stalled_downloading" |
+			jq -r '.[] | select(.progress < 0.8) | [ .hash, .name, .progress*100, .dlspeed ] | @tsv' |
+			tee -a /dev/tty |
+			cut -f1 |
+			qbtlib.sh qbottom
+		[ -z "$1" ] && exit
+		date
+		sleep $1
+	done
+;;
 
 ############# Preferences ######################################################
 

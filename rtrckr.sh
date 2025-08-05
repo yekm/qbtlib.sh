@@ -24,6 +24,7 @@ examples:
 rtrckr.sh find ubuntu bdremux
 rtrckr.sh ifind ubuntu bdremux | parallel --tag -j4 'rtrckr.sh download {} -F savepath=/mnt/all/film -F category= -F tags=rtrckr -F paused=false'
 rtrckr.sh frompage https://rutracker.org/forum/viewtopic.php?t=6012098 | parallel -j4 'rtrckr.sh download {} -F savepath=/mnt/all/mult/FilmScan -F category=mult/fscan -F paused=false'
+ls -1d *музыка* *оцифровки* | parallel --tty -j1 ../qbtlib/rtrckr.sh nometa
 EOF
 
 	head -n1 $tsv
@@ -31,7 +32,8 @@ EOF
 	echo '1  2    3    4     5    6   7    '
 }
 
-export tsv=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))/rtrckr/rtrckr.tsv
+export srcdir=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
+export tsv=$srcdir/rtrckr/rtrckr.tsv
 
 makelink() {
 	#echo mkl ::: "$1" ::: "$2" ::: "$3" :::
@@ -97,6 +99,24 @@ download)
 	qbtlib.sh add $tcache ${@:2}
 	;;
 
+byhash)
+#set -vx
+    btbak=$srcdir/rtrckr/BT_backup
+	[ -n "$help" ] && die 'add torrent with hash `arg1` to qbt. optional args -F savepath= -F category= -F tags= -F paused=true'
+	hash=$1
+	tbak=$(find $btbak -iname $hash.torrent)
+	if [ -s $tbak ]; then
+	    #qbtlib.sh add $tbak ${@:2}
+		read id fid <<< "$(rtrckr.sh grep $hash | cut -f1,6 | tr -d ':')"
+		#id=$(rtrckr.sh grep $hash | tee /dev/stdout | cut -f1)
+		#fid=$()
+	    qbtlib.sh add $tbak -F savepath=/mnt/all/music/keep/$fid/$id -F category=music -F tags=$fid,rtrckr -F paused=true ${@:2}
+	elif [ -n "$ALLOWDOWNLOAD"]; then
+    	id=$(rtrckr.sh grep $hash | tee /dev/stdout | cut -f1)
+	    rtrckr.sh download $id
+	fi
+	;;
+
 frompage)
 	[ -n "$help" ] && die 'extract torrent ids from links from page `arg1`'
 	rtrckr.sh curl $1 |
@@ -153,6 +173,19 @@ rtrckrfs)
 		grep -v ^$ |
 		parallel --colsep=$'\t' -j50% --eta makelink $maxname
 	;;
+
+nometa)
+	[ -n "$help" ] && die 'remove stuff like [24][TR][Classic](haha) from rtrckrfs'
+	cd "${1:-.}"
+	echo "$1"
+	mkdir -p .nometa
+	ls -1 |
+		grep -v nometa |
+		# todo: inner brackets are not handled correctly
+		perl -ne 'chomp; print; s/^((\([^\)]+\)|\s|(\[[^\]]+\])))*\s*(.*)/$4/; print "\t$_\n"' |
+		parallel --colsep=$'\t' --lb --eta 'ln -r -s {1} .nometa/{2} |& pv -X'
+		#parallel --lb --eta 'ln -r -s *{} .nometa/{} |& pv -X'
+;;
 
 *)
 	die no such command

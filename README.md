@@ -184,20 +184,23 @@ tinfo.my            h|p torrent info in custom format
 resume              h|p resume torrents
 stop                h|p stop torrents
 recheck             h|p recheck torrents
-slowcheck           h|. [arg1=2] recheck torrents `arg1` at a time, default 2
-add                 ... <filename> [args] add torrent. optional args -F savepath= -F category= -F tags= -F paused=true
-delete              h|p [`arg1`] delete torrents, arg1 can be "deletefilestoo"
+slowcheck           h|. a recheck torrents `arg1` at a time, default 2
+add                 ... <filename> a add torrent. optional args -F savepath= -F category= -F tags= -F paused=true
+delete              h|p a delete torrents, arg1 can be "deletefilestoo"
 tfiles              ... <hash> list files by one `hash` (name, priority, progress, size in GiB, name)
 tfiles.js           ... <hash> list files by one `hash` in json
 setfpriority        id|p <arg1> <arg2> set pieces priority to `arg2` (0,1,6,7) for torrent with hash `arg1`
 pieces              ... <hash> show torrent pieces
 cpath               h|p list content path by hashes
+get_location        h|p get torrent locations
 set_location        h|p <arg1> moves torrents to a new location `arg1`
+sed_location        h|p <arg1> moves torrents to a new location `echo old_location | sed arg1`
 set_category        h|p <arg1> set cetegory to `<arg1>` on torrents
 qtop                h|p move torrents on top of the queue
 qbottom             h|p move torrents on bottom of the queue
 tracker1            h|. list trackers
 trackers            h|. list trackers
+tracker_add         h|. <tracker_url> add tracker url to torrents
 peers               h|. list peers on a hash sorted by country, like in webui
 peerhashes          ip| list hashes on a peer
 peerpaths           ip| list content paths by peer
@@ -208,11 +211,12 @@ icountries          h|. list peer countries by hash with --tag
 tcountries          ... <country> hashes by `country`. (active list icountries hashes grepped by `country`
 monitor             ... list uploading torrent to sorted by `upspeed`
 monitor_dl          ... list downloading torrent to sorted by `dlspeed`
+kick_stalled_dl     ... a deprioritise incomplete stalled downloading torrents
 togglespeed         ... toggle alternative speed limits
 gspeed              ... [ul] [dl] get/set global up/dl limits in MiB/s
 speednow            ... current speed ul dl
 sl                  ... speed limits mode
-pref.js             ... [arg1] set new preferences from file `arg1` if exists. display preferences in json.
+pref.js             ... a set new preferences from file `arg1` if exists. display preferences in json.
 pref_sed            ... <arg1> set new preferences filtered by sed arg1
 pref                ... app preferences
 stat                ... display overall statistics
