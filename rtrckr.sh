@@ -178,6 +178,7 @@ nometa)
 	[ -n "$help" ] && die 'remove stuff like [24][TR][Classic](haha) from rtrckrfs'
 	cd "${1:-.}"
 	echo "$1"
+	[ -d .nometa ] && rm -r .nometa
 	mkdir -p .nometa
 	ls -1 |
 		grep -v nometa |
