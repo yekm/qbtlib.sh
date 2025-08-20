@@ -25,6 +25,7 @@ rtrckr.sh find ubuntu bdremux
 rtrckr.sh ifind ubuntu bdremux | parallel --tag -j4 'rtrckr.sh download {} -F savepath=/mnt/all/film -F category= -F tags=rtrckr -F paused=false'
 rtrckr.sh frompage https://rutracker.org/forum/viewtopic.php?t=6012098 | parallel -j4 'rtrckr.sh download {} -F savepath=/mnt/all/mult/FilmScan -F category=mult/fscan -F paused=false'
 ls -1d *музыка* *оцифровки* | parallel --tty -j1 ../qbtlib/rtrckr.sh nometa
+rtrckr.sh grep fid:1756 | grep -i psyc | cut -f1 | parallel -j4 'rtrckr.sh keep {} /mnt/all/music/keep'
 EOF
 
 	head -n1 $tsv
@@ -70,7 +71,7 @@ grep)
 	if [ -z "$1" ]; then
 		cat $tsv
 	else
-		rtrckr.sh grep ${@:2} | grep -i "$1"
+		rtrckr.sh grep ${@:2} | grep $GFLAGS -i "$1"
 	fi
 	;;
 
@@ -93,14 +94,28 @@ ifind)
 download)
 	[ -n "$help" ] && die 'download torrent with id `arg1` and add it to qbt. optional args -F savepath= -F category= -F tags= -F paused=true'
 	id=$1
-	# TODO: use permanent ~/.cache and warn on very old files?
-	tcache=/tmp/qbtlib.cache.$id.torrent
+	hash=$(GFLAGS=-w rtrckr.sh grep ^$id | cut -f5)
+	qbtlib.sh texists $hash && die $hash already present in qbt
+	[ -d ~/.cache/qbtlib ] || mkdir -p ~/.cache/qbtlib
+	tcache=~/.cache/qbtlib/$id.torrent
+	[ -n "$NOCACHE" ] && rm -f $tcache
 	[ -s $tcache ] || rtrckr.sh curl https://rutracker.org/forum/dl.php?t=$id >$tcache
-	qbtlib.sh add $tcache ${@:2}
+	qbtlib.sh add $tcache "${@:2}"
+	;;
+	
+keep)
+	[ -n "$help" ] && die '<arg1> <arg2> download with id=`arg1` and save into `arg2`/fid$fid/$id'
+	id=$1
+	cpath=$2
+
+	xmlline=$(GFLAGS=-w rtrckr.sh grep ^$id | head -n1)
+	fid=$(echo "$xmlline" | cut -f6 | cut -f2 -d:)
+	category=$(echo "$xmlline" | cut -f7 | sed 's/.* - //' | tr ' ' '_' | tr -d '()')
+	echo id=$id fid=$fid category $category
+	rtrckr.sh download $id -F category="$category" -F tags=rtrckr,fid$fid -F savepath=$cpath/fid$fid/$id
 	;;
 
 byhash)
-#set -vx
     btbak=$srcdir/rtrckr/BT_backup
 	[ -n "$help" ] && die 'add torrent with hash `arg1` to qbt. optional args -F savepath= -F category= -F tags= -F paused=true'
 	hash=$1
