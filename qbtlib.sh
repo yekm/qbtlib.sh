@@ -498,17 +498,16 @@ sl)
 
 pref.js)
 	[ -n "$help" ] && die '... [arg1] set new preferences from file `arg1` if exists. display preferences in json.'
-	[ -s "$1" ] && app setPreferences --data-urlencode json@$1
+	[ -s "$1" ] && app setPreferences --data-urlencode json@$1 && exit 0
 	app preferences | tee -a $t | jq
 	;;
 
 pref_sed)
 	[ -n "$help" ] && die '... <arg1> set new preferences filtered by sed arg1'
 	set -e
-	#qbtlib.sh pref.js | sed "$1" | qbtlib.sh pref.js /dev/stdin
 	qbtlib.sh pref.js | sed "$1" >/tmp/qbtlib_pref.sed.tmp
 	qbtlib.sh pref.js /tmp/qbtlib_pref.sed.tmp
-	app preferences | tee -a $t | jq
+	#app preferences | tee -a $t | jq
 	;;
 
 pref)
@@ -517,6 +516,18 @@ pref)
 		jq -r 'to_entries | map(select(.key != "scan_dirs"))[] | [ .key, .value ] | @tsv' |
 		qbtlib.sh table |
 		less
+	;;
+
+pref_set)
+	[ -n "$help" ] && die '... <arg1> <arg2> set option arg1 to arg2'
+	[ -z "$1" ] && die 'specify an option name'
+
+	qbtlib.sh pref.js | grep -w "$1" || die no such pref option
+
+	[ -z "$2" ] && die specify value
+	
+	qbtlib.sh pref_sed 's/"'$1'": .*/"'$1'": '$2',/'
+	qbtlib.sh pref.js | grep -w "$1"
 	;;
 
 stat)
