@@ -9,7 +9,7 @@ So things like _list | grep by name | resume_ become a simple one-liner.
 ### installation
 `sudo ln -sfrt /bin ./qbtlib.sh`
 
-dependencies: bash, curl, jq, gnu parallel, awk, util-linux, coreutils
+dependencies: bash, curl, jq, gnu parallel, awk, util-linux, coreutils  
 optional: gnuplot, influxdb, spark
 
 
@@ -150,7 +150,7 @@ forums stats
 
 ## utils
 
-Assortment of useful utils: [utils.md]
+Assortment of useful [utils, examples and whatnot](utils.md)
 
 
 ## todo
