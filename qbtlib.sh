@@ -161,6 +161,11 @@ cache.js)
 	cat ${1:-$cachefile} |
 		zstdmt -d
 	;;
+cache.custom)
+	[ -n "$help" ] && die '... print cached `qbtlib.sh last` with custom jq selector columns in arg1, like .hash, .category, .content_path, .progress*100'
+	qbtlib.sh cache.js |
+		jq -r ".[] | [ $@ ] | @tsv"
+	;;
 last)
 	[ -n "$help" ] && die '... list torrents sotred by `added_on`'
 	torrents info -G --data "sort=added_on" |
