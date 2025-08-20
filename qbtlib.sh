@@ -219,7 +219,13 @@ tinfo.my)
 		jq -r '.[] | [ .content_path, .progress, .state, .comment, .total_size/1024/1024, .hash ] | @tsv' |
 		qbtlib.sh table
 	;;
-
+texists)
+	[ -n "$help" ] && die '... <arg1> check if torrent with hash arg1 exists'
+	# TODO: use recent cache
+	[ -z "$1" ] && exit -1
+	qbtlib.sh cache1 | grep -qwi $1 && exit 0
+	echo $1 | qbtlib.sh tinfo | grep -qwi $1 || exit -1
+	;;
 
 resume)
 	[ -n "$help" ] && die 'h|p resume torrents'
