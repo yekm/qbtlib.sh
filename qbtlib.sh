@@ -688,6 +688,11 @@ bytes)
 		grep B$
 	;;
 
+bsum)
+	[ -n "$help" ] && die ".|. add up a lot of numbers, pretty print as bytes"
+	qbtlib.sh sum | qbtlib.sh bytes
+	;;
+
 *)
 	die no such command
 	;;

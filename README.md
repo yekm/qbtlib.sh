@@ -172,6 +172,7 @@ $ qbtlib.sh help
 cache               ... print cached `qbtlib.sh last`
 cache1              ... print only hashes from cached `qbtlib.sh last`
 cache.js            ... print cached `qbtlib.sh last` in json
+cache.custom        ... print cached `qbtlib.sh last` with custom jq selector columns in arg1, like .hash, .category, .content_path, .progress*100
 last                ... list torrents sotred by `added_on`
 last.r              ... list torrents sotred by `ratio`
 active              ... list torrents sotred by `added_on` filtered by `active`
@@ -181,12 +182,13 @@ info.js             ... list torrents sotred by `added_on` filtered by `active` 
 tinfo.js            h|p torrent info in json
 tinfo               h|p torrent info
 tinfo.my            h|p torrent info in custom format
+texists             ... <arg1> check if torrent with hash arg1 exists
 resume              h|p resume torrents
 stop                h|p stop torrents
 recheck             h|p recheck torrents
-slowcheck           h|. a recheck torrents `arg1` at a time, default 2
-add                 ... <filename> a add torrent. optional args -F savepath= -F category= -F tags= -F paused=true
-delete              h|p a delete torrents, arg1 can be "deletefilestoo"
+slowcheck           h|. [arg1=2] recheck torrents `arg1` at a time, default 2
+add                 ... <filename> [args] add torrent. optional args -F savepath= -F category= -F tags= -F paused=true
+delete              h|p [`arg1`] delete torrents, arg1 can be "deletefilestoo"
 tfiles              ... <hash> list files by one `hash` (name, priority, progress, size in GiB, name)
 tfiles.js           ... <hash> list files by one `hash` in json
 setfpriority        id|p <arg1> <arg2> set pieces priority to `arg2` (0,1,6,7) for torrent with hash `arg1`
@@ -211,12 +213,12 @@ icountries          h|. list peer countries by hash with --tag
 tcountries          ... <country> hashes by `country`. (active list icountries hashes grepped by `country`
 monitor             ... list uploading torrent to sorted by `upspeed`
 monitor_dl          ... list downloading torrent to sorted by `dlspeed`
-kick_stalled_dl     ... a deprioritise incomplete stalled downloading torrents
+kick_stalled_dl     ... [delay] deprioritise incomplete stalled downloading torrents
 togglespeed         ... toggle alternative speed limits
 gspeed              ... [ul] [dl] get/set global up/dl limits in MiB/s
 speednow            ... current speed ul dl
 sl                  ... speed limits mode
-pref.js             ... a set new preferences from file `arg1` if exists. display preferences in json.
+pref.js             ... [arg1] set new preferences from file `arg1` if exists. display preferences in json.
 pref_sed            ... <arg1> set new preferences filtered by sed arg1
 pref                ... app preferences
 stat                ... display overall statistics
@@ -234,6 +236,7 @@ js.table            .|. [] format json object key-values as table
 _sum                .|. add up all numbers
 sum                 .|. add up a lot of numbers
 bytes               .|. pretty print amount of bytes
+bsum                .|. add up a lot of numbers, pretty print as bytes
 
 examples:
 qbtlib.sh pref_sed 's/"max_connec": .*/"max_connec": 1024,/'
