@@ -456,7 +456,7 @@ kick_stalled_dl)
 
 	while true; do
 		qbtlib.sh info.js --data "filter=stalled_downloading" |
-			jq -r '.[] | select(.progress < 0.8) | [ .hash, .name, .progress*100, .dlspeed ] | @tsv' |
+			jq -r '.[] | select(.progress < 0.5) | [ .hash, .name, .progress*100, .dlspeed ] | @tsv' |
 			tee -a /dev/tty |
 			cut -f1 |
 			qbtlib.sh qbottom
