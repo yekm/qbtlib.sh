@@ -3,12 +3,14 @@ bash library to manipulate qbittorent via web api
 or  
 practical introduction to gnu parallel and jq. `jq` is used for filtering and converting
 json data from qbittorrent to TSV format on which simple tools like `head` and `grep` can be used.
+So things like _list | grep by name | resume_ become a simple one-liner.
 
 
 ### installation
 `sudo ln -sfrt /bin ./qbtlib.sh`
 
 dependencies: bash, curl, jq, gnu parallel, awk, util-linux, coreutils
+optional: gnuplot, influxdb, spark
 
 
 ### usage
@@ -48,14 +50,8 @@ move last 40 added torrents
 display app preferences as table  
 `qbtlib.sh pref`
 
-edit preferences  
-```
-qbtlib.sh pref.js | tee /tmp/pref.json
-vim /tmp/pref.json
-qbtlib.sh pref.js /tmp/pref.json
-```
-or automagically filter json with sed:  
-`qbtlib.sh pref_sed 's/"max_connec": .*/"max_connec": 512,/'`
+get certain pref option. supply a second argument to set it.
+`qbtlib.sh pref_set max_connec`
 
 files for last 5 added torrents  
 `qbtlib.sh cache | tail -n5 | cut -f1 | parallel -k qbtlib.sh tfiles | cut -f1- | column -t -s$'\t' -N id,file,prio,progress,sizeGB`
@@ -99,6 +95,10 @@ add torrents to qbt
 
 delete torrents with their files  
 `qbtlib.sh last | grep some | cut -f1 | qbtlib.sh delete deletefilestoo`
+
+display overall statistics: number of torrents per state and per category;  
+bytes per category; connection status.  
+`qbtlib.sh stat`
 
 qbt docs: https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#torrent-management
 https://github.com/qbittorrent/wiki/blob/master/WebUI-API-(qBittorrent-5.0).md
@@ -221,6 +221,7 @@ sl                  ... speed limits mode
 pref.js             ... [arg1] set new preferences from file `arg1` if exists. display preferences in json.
 pref_sed            ... <arg1> set new preferences filtered by sed arg1
 pref                ... app preferences
+pref_set            ... <arg1> <arg2> set option arg1 to arg2
 stat                ... display overall statistics
 stat.png            ... generate ratio-size scatter plot
 log                 ... display log

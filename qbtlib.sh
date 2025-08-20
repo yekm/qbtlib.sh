@@ -521,11 +521,17 @@ pref)
 
 stat)
 	[ -n "$help" ] && die "... display overall statistics"
-	qbtlib.sh cache.js | jq -r '.[] | .state' | qbtlib.sh top
-	qbtlib.sh cache.js | jq -r '.[] | .category' | qbtlib.sh top
 	transfer info |
 		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024, .dl_rate_limit/1024/1024, .up_rate_limit/1024/1024 ] | @tsv' |
 		qbtlib.sh table -N "status,dhtnodes,dl MiB/s,up MiB/s,total MiB/s,ratelimit dl MiB/s,ratelimit up MiB/s"
+
+	qbtlib.sh cache.custom '.state' | qbtlib.sh top
+	qbtlib.sh cache.custom '.category' | qbtlib.sh top
+
+	qbtlib.sh cache.custom '.category' | qbtlib.sh rawtop |
+		parallel -k --tag 'qbtlib.sh cache.custom ".size, .category" | grep -w "{= uq =}" | cut -f1 | qbtlib.sh bsum' |
+		sort -k2 -n |
+		qbtlib.sh table
 	;;
 
 stat.png)
