@@ -1,0 +1,8 @@
+*.torrent
+*.tsv
+*.log
+*.joblog
+.token*
+WebUI-API-*.md
+*.json
+*.zst
