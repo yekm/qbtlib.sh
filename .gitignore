@@ -5,4 +5,5 @@
 .token*
 WebUI-API-*.md
 *.json
+!qbtlib.dashboard.json
 *.zst
