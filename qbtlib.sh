@@ -364,9 +364,7 @@ tracker_add)
 peers)
 	[ -n "$help" ] && die 'h|. list peers on a hash sorted by country, like in webui'
 	parallel --tag 'sync torrentPeers -G --data "hash={}" | \
-			jq -r ".peers | to_entries | .[].value | [ .country_code, .ip, .port, .connection, .flags, .client, .progress, .dl_speed, .downloada, .up_speed, .uploaded, .relevance, .files ] | @tsv"' |
-		sort |
-		qbtlib.sh table
+			jq -r ".peers | to_entries | .[].value | [ .country_code, .ip, .port, .connection, .flags, .client, .progress, .dl_speed, .downloada, .up_speed, .uploaded, .relevance, .files ] | @tsv"'
 	;;
 
 peerhashes)
@@ -530,21 +528,40 @@ pref_set)
 	qbtlib.sh pref.js | grep -w "$1"
 	;;
 
+stat.countries)
+	[ -n "$help" ] && die "... top countries of all active torrents"
+	qbtlib.sh active1 |
+		qbtlib.sh peers |
+		cut -f2 |
+		qbtlib.sh top
+	;;
+	
+stat.clients)
+	[ -n "$help" ] && die "... top client's software of all active torrents"
+	qbtlib.sh active1 |
+		qbtlib.sh peers |
+		cut -f7 | cut -f1 -d' ' | cut -f1 -d/ | tr 'A-Z' 'a-z' |
+		sed 's/^$/empty/' |
+		qbtlib.sh top
+	;;
+
 stat)
 	[ -n "$help" ] && die "... display overall statistics"
 	transfer info |
 		jq -r '[ .connection_status, .dht_nodes, .dl_info_speed/1024/1204, .up_info_speed/1024/1024, ( .dl_info_speed + .up_info_speed )/1024/1024, .dl_rate_limit/1024/1024, .up_rate_limit/1024/1024 ] | @tsv' |
 		qbtlib.sh table -N "status,dhtnodes,dl MiB/s,up MiB/s,total MiB/s,ratelimit dl MiB/s,ratelimit up MiB/s"
 
+	qbtlib.sh stat.countries
+	qbtlib.sh stat.clients
+
 	qbtlib.sh cache.custom '.state' | qbtlib.sh top
 	qbtlib.sh cache.custom '.category' | qbtlib.sh top
 
 	qbtlib.sh cache.custom '.category' | qbtlib.sh rawtop |
-		parallel -k --tag 'qbtlib.sh cache.custom ".size, .category" | grep -w "{= uq =}" | cut -f1 | qbtlib.sh bsum' |
+		parallel -j50% --tag 'qbtlib.sh cache.custom ".size, .category" | grep -w "{= uq =}" | cut -f1 | qbtlib.sh bsum' |
 		sort -k2 -n |
 		qbtlib.sh table
 	;;
-
 stat.png)
 	[ -n "$help" ] && die "... generate ratio-size scatter plot"
 	png=/tmp/qbtlib-stat-ratio-size-$(date +%F_%R).png
@@ -599,16 +616,20 @@ influx)
 	# all sorts of weird stuff in grafana without aligned time in data points
 	d=$(date +%s)
 
-	stat=$(torrents info -G | jq -r '.[] | .state' | qbtlib.sh top | awk '{print "echo "$2",host=$QBT_HOST value="$1" $d"}')
+	state=$(torrents info -G | jq -r '.[] | .state' | qbtlib.sh top | awk '{print "echo "$2",stat=state,host=$QBT_HOST value="$1" $d"}')
+	clients=$(qbtlib.sh stat.clients | awk '{print "echo "$2",stat=clients,host=$QBT_HOST value="$1" $d"}')
+	countries=$(qbtlib.sh stat.countries | awk '{print "echo "$2",stat=countries,host=$QBT_HOST value="$1" $d"}')
 
 	idata=$tmpfile.influx.data
 	cat >$idata << EOF
 	active_torrents,host=$QBT_HOST value=$(qbtlib.sh active | wc -l) $d
 	connections,host=$QBT_HOST value=$(qbtlib.sh active1 | qbtlib.sh connections | wc -l) $d
-	dl_speed,host=$QBT_HOST value=$(transfer info | jq -r .dl_info_speed) $d
-	up_speed,host=$QBT_HOST value=$(transfer info | jq -r .up_info_speed) $d
+	dl_speed,stat=speed,host=$QBT_HOST value=$(transfer info | jq -r .dl_info_speed) $d
+	up_speed,stat=speed,host=$QBT_HOST value=$(transfer info | jq -r .up_info_speed) $d
 	max_connec,host=$QBT_HOST value=$(qbtlib.sh pref.js | jq -r .max_connec) $d
-	$(eval "$stat")
+	$(eval "$state")
+	$(eval "$clients")
+	$(eval "$countries")
 EOF
 
 	[ -n "$DEBUG" ] && cat $idata && exit

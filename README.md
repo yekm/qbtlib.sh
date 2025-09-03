@@ -222,6 +222,8 @@ pref.js             ... [arg1] set new preferences from file `arg1` if exists. d
 pref_sed            ... <arg1> set new preferences filtered by sed arg1
 pref                ... app preferences
 pref_set            ... <arg1> <arg2> set option arg1 to arg2
+stat.countries      ... top countries of all active torrents
+stat.clients        ... top client's software of all active torrents
 stat                ... display overall statistics
 stat.png            ... generate ratio-size scatter plot
 log                 ... display log
