@@ -150,11 +150,11 @@ cache)
 	# todo: tmp cleanup
 	;;
 cache1)
-	[ -n "$help" ] && die '... print only hashes from cached `qbtlib.sh last`'
+	[ -n "$help" ] && die '... [arg1] print only arg1 number of last hashes from cached `qbtlib.sh last`'
 	cf=$cachefile
 	[ "$cf" -nt "$cf-1" ] && qbtlib.sh cache.js |
 		jq -r '.[] | [ .hash ] | @tsv' >"$cf-1"
-	cat "$cf-1"
+	tail -n ${1:-+1} "$cf-1"
 	;;
 cache.js)
 	[ -n "$help" ] && die '... print cached `qbtlib.sh last` in json'
