@@ -232,6 +232,12 @@ resume)
 	hashes=$(paste -sd\|)
 	torrents start -X POST --data "hashes=$hashes"
 	;;
+startnow)
+	[ -n "$help" ] && die 'h|p resume and queue top torrents'
+	hashes=$(paste -sd\|)
+	torrents start -X POST --data "hashes=$hashes"
+	torrents topPrio -X POST --data "hashes=$hashes"
+	;;
 stop)
 	[ -n "$help" ] && die 'h|p stop torrents'
 	hashes=$(paste -sd\|)

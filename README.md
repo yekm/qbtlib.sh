@@ -170,7 +170,7 @@ Assortment of useful [utils, examples and whatnot](utils.md)
 ```
 $ qbtlib.sh help
 cache               ... print cached `qbtlib.sh last`
-cache1              ... print only hashes from cached `qbtlib.sh last`
+cache1              ... [arg1] print only arg1 number of last hashes from cached `qbtlib.sh last`
 cache.js            ... print cached `qbtlib.sh last` in json
 cache.custom        ... print cached `qbtlib.sh last` with custom jq selector columns in arg1, like .hash, .category, .content_path, .progress*100
 last                ... list torrents sotred by `added_on`
@@ -184,6 +184,7 @@ tinfo               h|p torrent info
 tinfo.my            h|p torrent info in custom format
 texists             ... <arg1> check if torrent with hash arg1 exists
 resume              h|p resume torrents
+startnow            h|p resume and queue top torrents
 stop                h|p stop torrents
 recheck             h|p recheck torrents
 slowcheck           h|. [arg1=2] recheck torrents `arg1` at a time, default 2
