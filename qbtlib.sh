@@ -315,9 +315,9 @@ cpath)
 	;;
 
 get_location)
-    [ -n "$help" ] && die 'h|p get torrent locations'
-    qbtlib.sh tinfo.js | jq -r '.[] | [ .hash, .content_path] | @tsv'
-    ;;
+	[ -n "$help" ] && die 'h|p get torrent locations'
+	qbtlib.sh tinfo.js | jq -r '.[] | [ .hash, .content_path] | @tsv'
+	;;
 set_location)
 	[ -n "$help" ] && die 'h|p <arg1> moves torrents to a new location `arg1`'
 	[ -z "$1" ] && die specify location as first arg
@@ -325,9 +325,9 @@ set_location)
 	torrents setLocation -X POST --data "hashes=$hashes" --data "location=$1"
 	;;
 sed_location)
-    #die 'fix escaping issues first'
-    [ -n "$help" ] && die 'h|p <arg1> moves torrents to a new location `echo old_location | sed arg1`'
-    [ -z "$1" ] && die specify sed expression
+	#die 'fix escaping issues first'
+	[ -n "$help" ] && die 'h|p <arg1> moves torrents to a new location `echo old_location | sed arg1`'
+	[ -z "$1" ] && die specify sed expression
 	qbtlib.sh get_location | sed $1 | parallel --colsep=$'\t' torrents setLocation -X POST --data "hashes={1}" --data 'location={=2 $_=Q($arg[2]) =}'
 	;;
 set_category)

@@ -116,19 +116,19 @@ keep)
 	;;
 
 byhash)
-    btbak=$srcdir/rtrckr/BT_backup
+	btbak=$srcdir/rtrckr/BT_backup
 	[ -n "$help" ] && die 'add torrent with hash `arg1` to qbt. optional args -F savepath= -F category= -F tags= -F paused=true'
 	hash=$1
 	tbak=$(find $btbak -iname $hash.torrent)
 	if [ -s $tbak ]; then
-	    #qbtlib.sh add $tbak ${@:2}
+		#qbtlib.sh add $tbak ${@:2}
 		read id fid <<< "$(rtrckr.sh grep $hash | cut -f1,6 | tr -d ':')"
 		#id=$(rtrckr.sh grep $hash | tee /dev/stdout | cut -f1)
 		#fid=$()
-	    qbtlib.sh add $tbak -F savepath=/mnt/all/music/keep/$fid/$id -F category=music -F tags=$fid,rtrckr -F paused=true ${@:2}
+		qbtlib.sh add $tbak -F savepath=/mnt/all/music/keep/$fid/$id -F category=music -F tags=$fid,rtrckr -F paused=true ${@:2}
 	elif [ -n "$ALLOWDOWNLOAD"]; then
-    	id=$(rtrckr.sh grep $hash | tee /dev/stdout | cut -f1)
-	    rtrckr.sh download $id
+		id=$(rtrckr.sh grep $hash | tee /dev/stdout | cut -f1)
+		rtrckr.sh download $id
 	fi
 	;;
 
