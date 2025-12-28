@@ -104,9 +104,12 @@ download)
 	;;
 	
 keep)
-	[ -n "$help" ] && die '<arg1> <arg2> download with id=`arg1` and save into `arg2`/fid$fid/$id'
-	id=$1
-	cpath=$2
+	# GFLAGS=-w rtrckr.sh  grep fid:737 | cut -f1 | parallel -j2 rtrckr.sh keep /mnt/all/music/keep
+	[ -n "$help" ] && die '<arg1> <arg2> download with id=`arg2` and save into `arg1`/fid$fid/$id'
+	cpath=$1
+	id=$2
+	[ -z "$1" ] && die specify content path
+	[ -z "$2" ] && die specify download id
 
 	xmlline=$(GFLAGS=-w rtrckr.sh grep ^$id | head -n1)
 	fid=$(echo "$xmlline" | cut -f6 | cut -f2 -d:)
