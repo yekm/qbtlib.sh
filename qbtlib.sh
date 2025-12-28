@@ -233,8 +233,12 @@ resume)
 	torrents start -X POST --data "hashes=$hashes"
 	;;
 startnow)
-	[ -n "$help" ] && die 'h|p resume and queue top torrents'
-	hashes=$(paste -sd\|)
+	[ -n "$help" ] && die 'h|p resume and queue top torrents from stdin or last [arg1]'
+	if [ -n "$1" ]; then
+		hashes=$(torrents info -G --data "sort=added_on" --data "reverse=true" --data "limit=$1" | jq -r '.[] | .hash' | paste -sd\|)
+	else
+		hashes=$(paste -sd\|)
+	fi
 	torrents start -X POST --data "hashes=$hashes"
 	torrents topPrio -X POST --data "hashes=$hashes"
 	;;

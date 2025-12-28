@@ -184,12 +184,13 @@ tinfo               h|p torrent info
 tinfo.my            h|p torrent info in custom format
 texists             ... <arg1> check if torrent with hash arg1 exists
 resume              h|p resume torrents
-startnow            h|p resume and queue top torrents
+startnow            h|p resume and queue top torrents from stdin or last [arg1]
 stop                h|p stop torrents
 recheck             h|p recheck torrents
 slowcheck           h|. [arg1=2] recheck torrents `arg1` at a time, default 2
 add                 ... <filename> [args] add torrent. optional args -F savepath= -F category= -F tags= -F paused=true
 delete              h|p [`arg1`] delete torrents, arg1 can be "deletefilestoo"
+apicall             apicall $@
 tfiles              ... <hash> list files by one `hash` (name, priority, progress, size in GiB, name)
 tfiles.js           ... <hash> list files by one `hash` in json
 setfpriority        id|p <arg1> <arg2> set pieces priority to `arg2` (0,1,6,7) for torrent with hash `arg1`
