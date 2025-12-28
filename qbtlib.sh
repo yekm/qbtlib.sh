@@ -92,40 +92,16 @@ tstate() {
 # error missingFiles uploading pausedUP queuedUP stalledUP checkingUP forcedUP allocating downloading metaDL pausedDL queuedDL stalledDL checkingDL forcedDL checkingResumeData moving unknown
 
 recheckwait() {
-	tstate $1 | grep \
-		-e checkingUP \
-		-e checkingDL \
-		-e allocating \
-		-e downloading \
-		-e metaDL \
-		-e pausedDL \
-		-e queuedDL \
-		-e stalledDL \
-		-e checkingResumeData \
-		-e moving \
-		-e unknown \
-	&& exit
+	echo $2 | qbtlib.sh recheck
+	
+	sleep 1
 
-	echo $1 | qbtlib.sh recheck
-
-	# waiting for qbt to start checking
-	i=0
-	while [ $(tstate $1) != "checkingUP" ]; do
-		(( i++ ))
-		if [ $i -gt 16 ]; then
-			echo -n TIMEOUT in $i seconds:\
-			echo $1 | qbtlib.sh tinfo | jq -r ".[] | [.state, .name] | @tsv"
-			exit
-		fi
-		sleep 1
-	done
-
-	# waiting for qbt to end checking
-	while [ $(tstate $1) == "checkingUP" ]; do
+	while qbtlib.sh info.js --data "filter=checking" | jq -e "length > $1" >/dev/null; do
+		echo -n .
 		sleep 2
 	done
-	echo -n recheck done:\
-	echo $1 | qbtlib.sh tinfo | jq -r ".[] | [.state, .name] | @tsv"
+
+	qbtlib.sh tinfo.js | jq -r '.[] | [ .name, .size/1024/1024/1024, .progress ] | @tsv'
 }
 
 export -f _apicall torrents sync peerhashes peerpaths recheckwait tstate
@@ -256,7 +232,7 @@ recheck)
 slowcheck)
 	[ -n "$help" ] && die 'h|. [arg1=2] recheck torrents `arg1` at a time, default 2'
 	j=${1:-2}
-	parallel -j$j --joblog slowcheck.joblog --halt soon,fail=1 --resume --eta --lb --tag recheckwait
+	parallel -j$j --joblog slowcheck.joblog --halt soon,fail=1 --resume --eta --lb --tag recheckwait $j
 	;;
 
 add)
