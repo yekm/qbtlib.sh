@@ -278,6 +278,10 @@ delete)
 	torrents delete -X POST $opt --data "hashes=$hashes"
 	;;
 
+apicall)
+	[ -n "$help" ] && die 'apicall $@'
+	_apicall $@
+	;;
 
 ############# Files ############################################################
 
