@@ -233,6 +233,11 @@ recheck)
 	hashes=$(paste -sd\|)
 	torrents recheck -X POST --data "hashes=$hashes"
 	;;
+reannounce)
+	[ -n "$help" ] && die 'h|p reannounce torrents'
+	hashes=$(paste -sd\|)
+	torrents reannounce -X POST --data "hashes=$hashes"
+	;;
 slowcheck)
 	[ -n "$help" ] && die 'h|. [arg1=2] recheck torrents `arg1` at a time, default 2'
 	j=${1:-2}
