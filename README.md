@@ -187,6 +187,7 @@ resume              h|p resume torrents
 startnow            h|p resume and queue top torrents from stdin or last [arg1]
 stop                h|p stop torrents
 recheck             h|p recheck torrents
+reannounce          h|p reannounce torrents
 slowcheck           h|. [arg1=2] recheck torrents `arg1` at a time, default 2
 add                 ... <filename> [args] add torrent. optional args -F savepath= -F category= -F tags= -F paused=true
 delete              h|p [`arg1`] delete torrents, arg1 can be "deletefilestoo"
@@ -259,5 +260,9 @@ qbtlib.sh active1 | qbtlib.sh countries | qbtlib.sh rawtop | tail -n4 | parallel
 qbtlib.sh cache1 | tail -n1 | parallel 'qbtlib.sh tfiles {} | grep Season1 | cut -f1 | qbtlib.sh setfpriority {} 6'
 too long list of hashes | parallel --pipe -n1000 -j1 qbtlib.sh cmd
 qbtlib.sh cache.js | jq -r '.[] | select(.state == "stoppedDL") | .hash'
+
+
+GFLAGS=-w rtrckr.sh  grep fid:XXXX | cut -f3 | qbtlib.sh bsum
+GFLAGS=-w rtrckr.sh  grep fid:XXXX | cut -f1 | parallel -j2 rtrckr.sh keep /mnt/all/music/keep
 
 ```

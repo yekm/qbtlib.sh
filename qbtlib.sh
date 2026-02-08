@@ -45,6 +45,10 @@ qbtlib.sh active1 | qbtlib.sh countries | qbtlib.sh rawtop | tail -n4 | parallel
 qbtlib.sh cache1 | tail -n1 | parallel 'qbtlib.sh tfiles {} | grep Season1 | cut -f1 | qbtlib.sh setfpriority {} 6'
 too long list of hashes | parallel --pipe -n1000 -j1 qbtlib.sh cmd
 qbtlib.sh cache.js | jq -r '.[] | select(.state == "stoppedDL") | .hash'
+
+
+GFLAGS=-w rtrckr.sh  grep fid:XXXX | cut -f3 | qbtlib.sh bsum
+GFLAGS=-w rtrckr.sh  grep fid:XXXX | cut -f1 | parallel -j2 rtrckr.sh keep /mnt/all/music/keep
 EOF
 }
 
