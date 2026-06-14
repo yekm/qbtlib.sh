@@ -3,7 +3,7 @@
 *.log
 *.joblog
 .token*
-WebUI-API-*.md
+#WebUI-API-*.md
 *.json
 !qbtlib.dashboard.json
 *.zst

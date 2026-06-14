@@ -97,11 +97,10 @@ tstate() {
 
 recheckwait() {
 	echo $2 | qbtlib.sh recheck
-	
+
 	sleep 1
 
 	while qbtlib.sh info.js --data "filter=checking" | jq -e "length > $1" >/dev/null; do
-		echo -n .
 		sleep 2
 	done
 
@@ -522,7 +521,7 @@ pref_set)
 	qbtlib.sh pref.js | grep -w "$1" || die no such pref option
 
 	[ -z "$2" ] && die specify value
-	
+
 	qbtlib.sh pref_sed 's/"'$1'": .*/"'$1'": '$2',/'
 	qbtlib.sh pref.js | grep -w "$1"
 	;;
@@ -534,7 +533,7 @@ stat.countries)
 		cut -f2 |
 		qbtlib.sh top
 	;;
-	
+
 stat.clients)
 	[ -n "$help" ] && die "... top client's software of all active torrents"
 	qbtlib.sh active1 |
