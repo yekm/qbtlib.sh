@@ -106,11 +106,21 @@ https://github.com/qbittorrent/wiki/blob/master/WebUI-API-(qBittorrent-5.0).md
 
 ## rtrckr.sh
 
-Tool for interfacing with rutracker.org. Requires `rtrkr_curl.sh` to be available
-in PATH. `rtrkr_curl.sh` can be obtained in DevTools network window by seleceting
-`Copy as CURL` in the relevant menu item. After creating it must be edited to
-accept url as first parameter (also you can specify a `--proxy` parameter there).
-See a bottom of `rtrckr.sh` for an example.
+Tool for interfacing with rutracker.org.
+
+Before using network-dependent commands (`download`, `frompage`, `curl`) you must
+authenticate once with `rtrckr.sh login`. Credentials are read from
+`~/.config/qbtlib/rt_creds` (a plain shell file that is `source`d) or, if absent
+there, from the environment variables `RT_LOGIN` and `RT_PASSWORD`. The session
+cookies are stored in `~/.config/qbtlib/.rt_cookies.txt` and reused by subsequent
+`rtrckr.sh curl`/`download`/`frompage` calls until they expire, after which you
+just run `login` again.
+
+Example `~/.config/qbtlib/rt_creds`:
+```
+RT_LOGIN=your_username
+RT_PASSWORD=your_password
+```
 
 Search function relies on plain text database in TSV format. This database can be
 obtained by converting xml dump of all torrents (5591249 topic id) by running
@@ -131,7 +141,13 @@ download a list of torrents from some forum topic.
 
 `rtrckr.sh xml2tsv` converts xml dump to a tsv database
 
-`rtrckr.sh curl` invokes rtrkr_curl.sh
+`rtrckr.sh login` authenticates against rutracker.org using `RT_LOGIN` /
+`RT_PASSWORD` from `~/.config/qbtlib/rt_creds` (or env) and saves session cookies
+to `~/.config/qbtlib/.rt_cookies.txt`. Must be run before `curl`/`download`/
+`frompage` and re-run whenever cookies expire.
+
+`rtrckr.sh curl` runs curl against rutracker.org reusing the cookies saved by
+`login`; pass any extra curl flags/URL as arguments.
 
 ### usage
 
