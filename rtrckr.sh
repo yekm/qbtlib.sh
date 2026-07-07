@@ -35,9 +35,12 @@ EOF
 
 export srcdir=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
 export tsv=$srcdir/rtrckr/rtrckr.tsv
-export kkeys=$HOME/.config/qbtlib/keeper_keys
-export RT_CREDS=~/.config/qbtlib/rt_creds
-export RT_COOKIE=$HOME/.config/qbtlib/.rt_cookies.txt
+
+export CONFDIR=$HOME/.config/qbtlib
+export kkeys=$CONFDIR/keeper_keys
+export kids=$CONFDIR/keeped_forum_ids
+export RT_CREDS=$CONFDIR/rt_creds
+export RT_COOKIE=$CONFDIR/.rt_cookies.txt
 
 makelink() {
 	#echo mkl ::: "$1" ::: "$2" ::: "$3" :::
@@ -135,7 +138,22 @@ keep)
 	fid=$(echo "$xmlline" | cut -f6 | cut -f2 -d:)
 	category=$(echo "$xmlline" | cut -f7 | sed 's/.* - //' | tr ' ' '_' | tr -d '()')
 	echo id=$id fid=$fid category $category
-	rtrckr.sh download $id -F category="$category" -F tags=rtrckr,fid$fid -F savepath=$cpath/fid$fid/$id
+	rtrckr.sh download $id -F category="$category" -F tags=rtrckr,fid$fid,id$id -F savepath=$cpath/fid$fid/$id
+	;;
+
+update_keep)
+	[ -n "$help" ] && die 'download newly released torrents from all forum ids specified in '$kids
+	cat $kids | sed 's/^/fid:/' | 
+		grep    -w -F -i -f- $tsv | # grep all torrents from all keeped forums
+		grep -v -w -F -i -f<(qbtlib.sh cache1) | # filter out what already present in qbt
+		parallel --tee --pipe --lb ::: \
+			'cut -f6,7 | sort | uniq -c | sort -n' \
+			'cut -f3 | qbtlib.sh bsum' \
+			'cut -f1 | parallel -j2 rtrckr.sh keep /mnt/all/music/keep'
+
+		
+		#tee >(cut -f6,7 | sort | uniq -c | sort -n) >(cut -f3 | qbtlib.sh bsum) | # print statistics and total sum
+		#cut -f1 | parallel -j2 rtrckr.sh keep /mnt/all/music/keep
 	;;
 
 byhash)
@@ -166,7 +184,7 @@ frompage)
 xml2tsv)
 	[ -n "$help" ] && die 'update tsv database from xml file `arg1`'
 	#last file from personal location if no argument
-	xml=${1:-$(ls -t /mnt/hall/rtrkr/rutracker-*.xml.xz | tail -n1)}
+	xml=${1:-$(ls -t /mnt/all/rtrkr/rutracker-*.xml.xz | tail -n1)}
 
 	cat $xml |
 		xz -d |
