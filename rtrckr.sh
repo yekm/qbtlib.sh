@@ -35,6 +35,9 @@ EOF
 
 export srcdir=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
 export tsv=$srcdir/rtrckr/rtrckr.tsv
+export kkeys=$HOME/.config/qbtlib/keeper_keys
+export RT_CREDS=~/.config/qbtlib/rt_creds
+export RT_COOKIE=$HOME/.config/qbtlib/.rt_cookies.txt
 
 makelink() {
 	#echo mkl ::: "$1" ::: "$2" ::: "$3" :::
@@ -99,7 +102,24 @@ download)
 	[ -d ~/.cache/qbtlib ] || mkdir -p ~/.cache/qbtlib
 	tcache=~/.cache/qbtlib/$id.torrent
 	[ -n "$NOCACHE" ] && rm -f $tcache
-	[ -s $tcache ] || rtrckr.sh curl https://rutracker.org/forum/dl.php?t=$id >$tcache
+	if false && [ -s $kkeys ]; then
+		source $kkeys
+		set -vx
+		curl -i -X POST 'https://rutracker.org/forum/dl.php' \
+			-H 'Content-Type: application/x-www-form-urlencoded' \
+			--data-urlencode "keeper_user_id=$KUID" \
+			--data-urlencode "keeper_api_key=$KKEY" \
+			--data-urlencode 'add_retracker_url=0' \
+			--data-urlencode "h=$hash" \
+			-o $tcache
+		set +vx
+		cat $tcache
+		# Error [keeper]: keeper data not found
+		# meh ..
+	else
+		[ -s $tcache ] || rtrckr.sh curl https://rutracker.org/forum/dl.php?t=$id >$tcache
+		file $tcache | grep -q 'BitTorrent file' || die "not a torrent file $tcache"
+	fi
 	qbtlib.sh add $tcache "${@:2}"
 	;;
 	
@@ -161,10 +181,40 @@ xml2tsv)
 		pv -N tsv -crabt >$tsv
 	;;
 
+login)
+	[ -n "$help" ] && die 'login to rutracker using RT_LOGIN= and RT_PASSWORD= from ' $RT_CREDS
+	set -euo pipefail
+	source $RT_CREDS || true
+
+	: "${RT_LOGIN:?no RT_LOGIN in $RT_CREDS or env}"
+	: "${RT_PASSWORD:?no RT_PASSWORD in $RT_CREDS or env}"
+	
+	rm -f $RT_COOKIE
+
+	LOGIN_BODY=$(
+		printf 'login_username=%s&login_password=%s&login=%s' \
+			"$(printf '%s' "$RT_LOGIN"	| iconv -t CP1251 | jq -sRr @uri)" \
+			"$(printf '%s' "$RT_PASSWORD" | iconv -t CP1251 | jq -sRr @uri)" \
+			"$(printf 'вход'			  | iconv -t CP1251 | jq -sRr @uri)"
+	)
+	
+	curl -sS --location --compressed \
+		--cookie-jar "$RT_COOKIE" --cookie "$RT_COOKIE" \
+		--output /dev/null \
+		--max-time 60 \
+		-H 'Content-Type: application/x-www-form-urlencoded' \
+		--data "$LOGIN_BODY" \
+		"https://rutracker.org/forum/login.php"
+	;;
+	
 curl)
-	[ -n "$help" ] && die 'invoke rtrkr_curl.sh'
-	which rtrkr_curl.sh >/dev/null || die 'rtrkr_curl.sh not fount, see README.md'
-	rtrkr_curl.sh $@
+	[ -n "$help" ] && die 'curl rutracker with cookies from previous call to login'
+	[ -s $RT_COOKIE ] || die "no cookies, try '$0 login'"
+
+	exec curl -sS --location --compressed \
+		--cookie-jar "$RT_COOKIE" \
+		--cookie "$RT_COOKIE" \
+		"$@"
 	;;
 
 rtrckrfs)

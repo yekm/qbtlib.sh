@@ -254,6 +254,17 @@ add)
 	echo
 	# -F savepath= -F category= -F tags= -F paused=true
 	;;
+
+add_magnet)
+	[ -n "$help" ] && die "... <magnet_link> [args] add torrent by magnet link or URL. optional args -F savepath= -F category= -F tags= -F paused=true"
+	[ -n "$1" ] || die 'specify magnet link'
+	url="$1"
+	if [[ ! "$url" =~ ^(magnet:|https?://|bc://bt/) ]]; then
+		url="magnet:?xt=urn:btih:$url"
+	fi
+	torrents add -F "urls=$url" ${@:2}
+	;;
+
 delete)
 	[ -n "$help" ] && die 'h|p [`arg1`] delete torrents, arg1 can be "deletefilestoo"'
 	opt="--data deleteFiles=false"
