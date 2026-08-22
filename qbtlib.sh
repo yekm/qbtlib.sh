@@ -353,6 +353,7 @@ qbottom)
 
 tracker1)
 	[ -n "$help" ] && die 'h|. list trackers'
+	# qbt accepts multiple hashes but there is no .hash field in the answer
 	torrents trackers --data "hash=$1" |
 		jq -r '.[] | [ .tier, .url, .status, .num_peers, .num_seeds, .num_downloaded, .msg ] | @tsv '
 	;;

@@ -41,6 +41,7 @@ export kkeys=$CONFDIR/keeper_keys
 export kids=$CONFDIR/keeped_forum_ids
 export RT_CREDS=$CONFDIR/rt_creds
 export RT_COOKIE=$CONFDIR/.rt_cookies.txt
+export ccurl=$CONFDIR/ccurl.sh
 
 makelink() {
 	#echo mkl ::: "$1" ::: "$2" ::: "$3" :::
@@ -199,6 +200,13 @@ xml2tsv)
 		pv -N tsv -crabt >$tsv
 	;;
 
+curl)
+	[ -n "$help" ] && die 'custom curl rutracker'
+	$ccurl $@
+	;;
+	
+
+####### not relevant behind cloudflare
 login)
 	[ -n "$help" ] && die 'login to rutracker using RT_LOGIN= and RT_PASSWORD= from ' $RT_CREDS
 	set -euo pipefail
@@ -216,7 +224,7 @@ login)
 			"$(printf 'вход'			  | iconv -t CP1251 | jq -sRr @uri)"
 	)
 	
-	curl -sS --location --compressed \
+	curl -vS --location --compressed \
 		--cookie-jar "$RT_COOKIE" --cookie "$RT_COOKIE" \
 		--output /dev/null \
 		--max-time 60 \
@@ -225,7 +233,7 @@ login)
 		"https://rutracker.org/forum/login.php"
 	;;
 	
-curl)
+coocurl)
 	[ -n "$help" ] && die 'curl rutracker with cookies from previous call to login'
 	[ -s $RT_COOKIE ] || die "no cookies, try '$0 login'"
 
@@ -234,6 +242,40 @@ curl)
 		--cookie "$RT_COOKIE" \
 		"$@"
 	;;
+
+fromcurl)
+	[ -n "$help" ] && die 'extract a -b cookie string from a curl command into RT_COOKIE; arg1 is the curl script, or - for stdin'
+	[ $# -eq 1 ] || die "specify one curl script path or - for stdin"
+	if [ "$1" = - ]; then
+		curlscript=$(cat)
+	else
+		[ -r "$1" ] || die "cannot read curl script $1"
+		curlscript=$(cat "$1")
+	fi
+
+	# Browser "Copy as cURL" uses -b/--cookie; do not source the script just to read it.
+	cookies=$(printf '%s' "$curlscript" | perl -0777 -ne '
+		if (/(?:^|[\s\\])(?:-b|--cookie)(?:\s+|=)(?:\x27([^\x27]*)\x27|"([^"]*)"|([^\s\\]+))/s) {
+			print defined($1) ? $1 : defined($2) ? $2 : $3;
+		}
+	')
+	[ -n "$cookies" ] || die "no -b or --cookie option found in curl script"
+
+	entries=$(printf '%s' "$cookies" | perl -ne '
+		for (split /;\s*/) {
+			next unless /^\s*([^=;\s]+)=(.*)$/;
+			print ".rutracker.org\tTRUE\t/\tTRUE\t0\t$1\t$2\n";
+		}
+	')
+	[ -n "$entries" ] || die "no cookies found in curl option"
+
+	mkdir -p "$CONFDIR" || die "cannot create $CONFDIR"
+	(umask 077
+		printf '%s\n%s\n' '# Netscape HTTP Cookie File' "$entries" >"$RT_COOKIE.tmp" &&
+		mv "$RT_COOKIE.tmp" "$RT_COOKIE") || die "cannot write $RT_COOKIE"
+	;;
+######
+
 
 rtrckrfs)
 	[ -n "$help" ] && die 'makes a directory-symlink tree that resembles forum-thread structure'

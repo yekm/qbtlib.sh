@@ -108,19 +108,27 @@ https://github.com/qbittorrent/wiki/blob/master/WebUI-API-(qBittorrent-5.0).md
 
 Tool for interfacing with rutracker.org.
 
-Before using network-dependent commands (`download`, `frompage`, `curl`) you must
-authenticate once with `rtrckr.sh login`. Credentials are read from
-`~/.config/qbtlib/rt_creds` (a plain shell file that is `source`d) or, if absent
-there, from the environment variables `RT_LOGIN` and `RT_PASSWORD`. The session
-cookies are stored in `~/.config/qbtlib/.rt_cookies.txt` and reused by subsequent
-`rtrckr.sh curl`/`download`/`frompage` calls until they expire, after which you
-just run `login` again.
+rutracker.org is behind Cloudflare, so the old `rtrckr.sh login` and cookie-file
+flow is obsolete. Before using network-dependent commands (`download`,
+`frompage`, `curl`), create `~/.config/qbtlib/ccurl.sh` from a request that works
+in your browser:
 
-Example `~/.config/qbtlib/rt_creds`:
-```
-RT_LOGIN=your_username
-RT_PASSWORD=your_password
-```
+1. Open rutracker.org in a browser, complete any Cloudflare checks, log in.
+2. Open DevTools, select the **Network** tab, and load any rutracker page.
+3. Right-click the successful request and choose **Copy** -> **Copy as cURL**.
+4. Create `~/.config/qbtlib/ccurl.sh` and paste the copied command into it.
+5. Remove the copied request URL and append `"$@"` to the command so it can
+   receive the URL from `rtrckr.sh`. For example:
+   ```sh
+   # Keep all headers and cookies copied from DevTools.
+   curl -H '...' --compressed "$@"
+   ```
+6. Make the script executable: `chmod 700 ~/.config/qbtlib/ccurl.sh`.
+
+The copied command includes the browser headers and session cookies needed to
+pass Cloudflare. Keep `ccurl.sh` private because it contains session data. When
+the browser session or Cloudflare clearance expires, copy a fresh request over
+the same file.
 
 Search function relies on plain text database in TSV format. This database can be
 obtained by converting xml dump of all torrents (5591249 topic id) by running
@@ -141,13 +149,9 @@ download a list of torrents from some forum topic.
 
 `rtrckr.sh xml2tsv` converts xml dump to a tsv database
 
-`rtrckr.sh login` authenticates against rutracker.org using `RT_LOGIN` /
-`RT_PASSWORD` from `~/.config/qbtlib/rt_creds` (or env) and saves session cookies
-to `~/.config/qbtlib/.rt_cookies.txt`. Must be run before `curl`/`download`/
-`frompage` and re-run whenever cookies expire.
-
-`rtrckr.sh curl` runs curl against rutracker.org reusing the cookies saved by
-`login`; pass any extra curl flags/URL as arguments.
+`rtrckr.sh curl URL` runs `~/.config/qbtlib/ccurl.sh URL`; the wrapper supplies
+the copied headers and cookies, while `URL` is passed through via `"$@"`. The
+same command is used by `download` and `frompage`.
 
 ### usage
 
@@ -206,6 +210,7 @@ recheck             h|p recheck torrents
 reannounce          h|p reannounce torrents
 slowcheck           h|. [arg1=2] recheck torrents `arg1` at a time, default 2
 add                 ... <filename> [args] add torrent. optional args -F savepath= -F category= -F tags= -F paused=true
+add_magnet          ... <magnet_link> [args] add torrent by magnet link or URL. optional args -F savepath= -F category= -F tags= -F paused=true
 delete              h|p [`arg1`] delete torrents, arg1 can be "deletefilestoo"
 apicall             apicall $@
 tfiles              ... <hash> list files by one `hash` (name, priority, progress, size in GiB, name)
